@@ -1,6 +1,9 @@
 import numpy as np
 from enum import IntEnum
 
+# Lab room 40ft by 19.2ft (400,192)ft/10
+# Desk 58inches by 23inches (58, 23)inches
+# 
 
 class Rotation(IntEnum):
     """
