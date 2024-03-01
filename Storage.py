@@ -36,6 +36,7 @@ class Object:
         self.depth = depth
         self.reserved_space = reserved_space
         self.id = id
+        self.rid = -1   #reference id
         self.uid = uid
         self.name = name    #maybe remove? change to seperate objects?
         self.rotation = Rotation.TBI
@@ -64,6 +65,25 @@ class Object:
 #     def __str__(self):
 #         return f"Desk | {super().__str__()}"
 
+# Matrix for unique id of object
+# Matrix for if space is taken (0,1)
+# Matrix for open space (without reserved space)
+        
+# Solution space will be a list of lists. First list iterated through by id, second list iterated by reference id. 
+    # Reference id will be assigned based on distance from the bottom left corner of the room. Euclidean distance because of calculating distance between solutions.
+
+# Conflict Types:
+        # 1. Static object hit. Dynamic object will move as much as it can.
+        # 2. Dynamic object hit. Dynamic objects will have uniform distribution of who gets the space.
+
+# How to find conflicts:
+        # 1. Use prime number unique ids, open space will have 1s, movement will multiply new space and divide previous space.
+            # Just need to check if prime number in each new position.
+        # 2. Use a list of conflict objects. Each object consists of location (x,y) and list of uid with conflicts. If single
+            # object is in list, no conflicts.
+        
+
+
 class Room:
     """
     
@@ -73,7 +93,7 @@ class Room:
         self.width = width
         self.height = height
         self.name = name
-        
+
         self.space = np.zeros((width, height), dtype=int)
         self.objects = []
 
