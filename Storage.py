@@ -5,6 +5,20 @@ from enum import IntEnum
 # Desk 58inches by 23inches (58, 23)inches
 # 
 
+#By wednesday morning:
+# Project for 201
+# Presentation for 289Q
+
+#By end of week
+# 289Q TSP
+# 201 CA
+
+#Weekend
+# 289Q Project
+
+#Next week
+# Reports
+
 class Rotation(IntEnum):
     """
     Enum class for rotation. Objects facing up will have reserved space defined above the object.
@@ -86,6 +100,10 @@ class Object:
             # object is in list, no conflicts.
         
 
+
+
+# Value of open space without exhaustive search
+    # Grouping distances from objects and walls.
 
 class Room:
     """
