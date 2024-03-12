@@ -1,5 +1,6 @@
 from collections import defaultdict
 import numpy as np
+from numpy.linalg import norm
 from enum import IntEnum
 from sympy import nextprime
 from collections import Counter
@@ -49,6 +50,9 @@ class Object: # May want to change name to not confuse with object class (lower 
         return f"{self.name} | Width: {self.width}, Depth: {self.depth}, Reserved Space: {self.reserved_space}, Rotation: {self.rotation}\n" \
                 f"\tID: {self.id}, RID: {self.rid}, UID: {self.uid}"
     
+    def shape_index(self):
+        return f"{self.width}_{self.depth}_{self.reserved_space}_{self.rotatable}"
+
     def set_position(self, x, y, rotation):
         self.x = x
         self.y = y
@@ -67,18 +71,22 @@ class Room:
     """
     
     """
+    X = [] # location in solution space
 
     def __init__(self, width, height, name):
         self.width = width
         self.height = height
         self.name = name
         self.current_uid = 1 # must be prime numbers
+        self.current_rid = 0 # reference id for objects of the same shape
 
         # Maybe change to all one array?
         self.uid_space = np.zeros((width, height), dtype=int)   #unique id space for moving objects around
         self.taken_space = np.zeros((width, height), dtype=bool)#space taken by objects, including reserved space
         self.open_space = np.zeros((width, height), dtype=bool) #space that is not taken by objects, not including reserved space
         self.objects = defaultdict(Object) #objects in the room, key is the object uid
+        self.moveable_shapes = defaultdict(list) #list of objects with the same shape, key is the shape index
+        #self.rid_list = list[int] #list of reference ids for objects of the same shape
 
     def get_inventory(self):
         """
@@ -165,6 +173,8 @@ class Room:
         """
         object.uid = self.next_uid()
         self.objects[object.uid] = object
+        if object.moveable:
+            self.moveable_shapes[object.shape_index()].append(object.uid)
 
         if object.rotation == Rotation.UP:
             self.uid_space[object.x : object.x + object.width, object.y : object.y + object.depth + object.reserved_space] = object.uid
@@ -196,6 +206,51 @@ class Room:
         Returns the open space.
         """
         return self.open_space.transpose()
+    
+
+    def get_X(self) -> tuple[list[np.ndarray], list[int]]:
+        """
+        Get solution space X.
+        """
+        X = []
+
+        for key in self.moveable_shapes.keys():
+            # Sort the objects by distance from origin
+            dists = []
+            for uid in self.moveable_shapes[key]:
+                obj = self.objects[uid]
+                dists.append((norm([obj.x, obj.y]), uid))
+            dists.sort()    # sort by distance from origin
+            
+            self.moveable_shapes[key] = [uid for _, uid in dists] #update the list of uids to be sorted by distance from origin
+            
+            if key[-4:] == "True": #rotatable
+                xi = np.zeros((len(dists),3)) #x, y, rotation
+                for i, uid in enumerate(self.moveable_shapes[key]):
+                    obj = self.objects[uid]
+                    xi[i] = [obj.x, obj.y, obj.rotation]
+            else:   #not rotatable
+                xi = np.zeros((len(dists),2)) #x, y
+                for i, uid in enumerate(self.moveable_shapes[key]):
+                    obj = self.objects[uid]
+                    xi[i] = [obj.x, obj.y]
+            X.append(xi)
+        
+        self.X = X
+        return X
+    
+    def set_X(self, X: list[np.ndarray]):
+        """
+        Set solution space X.
+        """
+        for i, key in enumerate(self.moveable_shapes.keys()):
+            for j, uid in enumerate(self.moveable_shapes[key]):
+                obj = self.objects[uid]
+                obj.x = X[i][j][0]
+                obj.y = X[i][j][1]
+                if X[i].shape[1] == 3:
+                    obj.rotation = X[i][j][2]
+
 
 
 
@@ -216,6 +271,7 @@ if __name__ == "__main__":
     # print(couch1)
     # print(door1)
     print(room)
+    print(f"Solution: {room.get_X()}")
 
     plt.subplot(1, 2, 1)
     plt.imshow(room.uid_map(), origin='lower')#np.flip(room.uid_space))
