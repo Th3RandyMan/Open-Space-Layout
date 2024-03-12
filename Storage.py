@@ -2,7 +2,7 @@ from collections import defaultdict
 import numpy as np
 from enum import IntEnum
 from sympy import nextprime
-
+from collections import Counter
 
 class Rotation(IntEnum):
     """
@@ -24,16 +24,16 @@ class Rotation(IntEnum):
         elif self.value == Rotation.LEFT:
             return "LEFT"
         else:
-            raise AttributeError("UNKNOWN")
+            return "UNKNOWN"
     
 
-class Object:
+class Object: # May want to change name to not confuse with object class (lower case o)
     """
     Abstract class for all objects in the storage. Width, depth, reserved space and id are 
     common for all objects. Position of objects will always be referenced from the bottom 
     left corner of the object.
     """
-    def __init__(self, width: int, depth: int, reserved_space: int, id, name: str, rotation: Rotation = Rotation.TBD, moveable: bool = True, rotatable: bool = True):
+    def __init__(self, width: int, depth: int, reserved_space: int, id: int, name: str, rotation: Rotation = Rotation.TBD, moveable: bool = True, rotatable: bool = True):
         self.width = width
         self.depth = depth
         self.reserved_space = reserved_space
@@ -78,12 +78,18 @@ class Room:
         self.uid_space = np.zeros((width, height), dtype=int)   #unique id space for moving objects around
         self.taken_space = np.zeros((width, height), dtype=bool)#space taken by objects, including reserved space
         self.open_space = np.zeros((width, height), dtype=bool) #space that is not taken by objects, not including reserved space
-        self.objects = defaultdict(object) #objects in the room, key is the object uid
+        self.objects = defaultdict(Object) #objects in the room, key is the object uid
 
+    def get_inventory(self):
+        """
+        """
+        obj_list = [self.objects[uid].name for uid in self.objects.keys()]
+        duplicates = Counter(obj_list)
+        return [f"{k}: {v}" for k, v in duplicates.items()]
 
     def __str__(self):
         return f"Room | Width: {self.width}, Height: {self.height}, Number of Objects: {len(self.objects)}\n" \
-                f"Objects: {[self.objects[i].name for i in range(len(self.objects))]}"
+                f"Objects: {self.get_inventory()}"
 
 
     def next_uid(self):
@@ -178,15 +184,45 @@ class Room:
             self.open_space[object.x : object.x + object.depth, object.y : object.y + object.width] = True
         else:
             raise AttributeError("UNKNOWN")
+        
+    def uid_map(self):
+        """
+        Returns the uid space.
+        """
+        return self.uid_space.transpose()
+    
+    def open_map(self):
+        """
+        Returns the open space.
+        """
+        return self.open_space.transpose()
 
 
 
 if __name__ == "__main__":
     # Test
+    from matplotlib import pyplot as plt
     room = Room(100, 100, "Test Room")
+
+    table1 = Object(10, 10, 5, 1, "Table") 
+    couch1 = Object(20, 10, 5, 2, "Couch")
+    door1 = Object(10, 0, 10, 3, "Door")
+
+    room.add_object(table1, 10, 10, Rotation.UP)
+    room.add_object(couch1, 40, 40, Rotation.LEFT)
+    room.add_object(door1, 80, 0, Rotation.UP)
+
+    # print(table1)
+    # print(couch1)
+    # print(door1)
     print(room)
 
-    table1 = Object(10, 10, 0, 1, 1, "Table")
-    couch1 = Object(10, 10, 0, 2, 2, "Couch")
-    print(table1)
-    print(couch1)
+    plt.subplot(1, 2, 1)
+    plt.imshow(room.uid_map(), origin='lower')#np.flip(room.uid_space))
+    plt.title("UID Space")
+
+    plt.subplot(1, 2, 2)
+    plt.imshow(room.open_map(), origin='lower')
+    plt.title("Open Space")
+
+    plt.show()
