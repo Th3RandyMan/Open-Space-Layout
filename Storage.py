@@ -1,23 +1,8 @@
+from collections import defaultdict
 import numpy as np
 from enum import IntEnum
+from sympy import nextprime
 
-# Lab room 40ft by 19.2ft (400,192)ft/10
-# Desk 58inches by 23inches (58, 23)inches
-# 
-
-#By wednesday morning:
-# Project for 201
-# Presentation for 289Q
-
-#By end of week
-# 289Q TSP
-# 201 CA
-
-#Weekend
-# 289Q Project
-
-#Next week
-# Reports
 
 class Rotation(IntEnum):
     """
@@ -27,7 +12,7 @@ class Rotation(IntEnum):
     RIGHT = 1
     DOWN = 2
     LEFT = 3
-    TBI = 4
+    TBD = 4 #To Be Declared
 
     def __str__(self):
         if self.value == Rotation.UP:
@@ -46,20 +31,23 @@ class Object:
     """
     Abstract class for all objects in the storage. Width, depth, reserved space and id are 
     common for all objects. Position of objects will always be referenced from the bottom 
-    right corner of the object.
+    left corner of the object.
     """
-    def __init__(self, width, depth, reserved_space, id, uid, name):
+    def __init__(self, width: int, depth: int, reserved_space: int, id, name: str, rotation: Rotation = Rotation.TBD, moveable: bool = True, rotatable: bool = True):
         self.width = width
         self.depth = depth
         self.reserved_space = reserved_space
-        self.id = id
-        self.rid = -1   #reference id
-        self.uid = uid
+        self.id = id    #id for objects of the same shape
+        self.rid = -1   #reference id for seperating objects of the same shape
+        self.uid = -1   #unique id for the object, make a prime number
         self.name = name    #maybe remove? change to seperate objects?
-        self.rotation = Rotation.TBI
+        self.rotation = rotation
+        self.moveable = moveable
+        self.rotatable = rotatable
 
     def __str__(self):
-        return f"{self.name} | Width: {self.width}, Depth: {self.depth}, Reserved Space: {self.reserved_space}, ID: {self.id}"
+        return f"{self.name} | Width: {self.width}, Depth: {self.depth}, Reserved Space: {self.reserved_space}, Rotation: {self.rotation}\n" \
+                f"\tID: {self.id}, RID: {self.rid}, UID: {self.uid}"
     
     def set_position(self, x, y, rotation):
         self.x = x
@@ -67,43 +55,13 @@ class Object:
         self.rotation = rotation
     
     def move(self, x, y, rotation):
-        self.x += x
-        self.y += y
-        self.rotation = rotation
+        if(self.moveable):
+            self.x += x
+            self.y += y
+            self.rotation = rotation
+        else:
+            raise AttributeError("Object is not moveable")
 
-# class Desk(Object):
-#     """
-#     Class for desk objects. Inherits from Object class.
-#     """
-#     def __init__(self, width, depth, reserved_space, id):
-#         super().__init__(width, depth, reserved_space, id)
-#         self.name = "Desk"
-
-#     def __str__(self):
-#         return f"Desk | {super().__str__()}"
-
-# Matrix for unique id of object
-# Matrix for if space is taken (0,1)
-# Matrix for open space (without reserved space)
-        
-# Solution space will be a list of lists. First list iterated through by id, second list iterated by reference id. 
-    # Reference id will be assigned based on distance from the bottom left corner of the room. Euclidean distance because of calculating distance between solutions.
-
-# Conflict Types:
-        # 1. Static object hit. Dynamic object will move as much as it can.
-        # 2. Dynamic object hit. Dynamic objects will have uniform distribution of who gets the space.
-
-# How to find conflicts:
-        # 1. Use prime number unique ids, open space will have 1s, movement will multiply new space and divide previous space.
-            # Just need to check if prime number in each new position.
-        # 2. Use a list of conflict objects. Each object consists of location (x,y) and list of uid with conflicts. If single
-            # object is in list, no conflicts.
-        
-
-
-
-# Value of open space without exhaustive search
-    # Grouping distances from objects and walls.
 
 class Room:
     """
@@ -114,9 +72,27 @@ class Room:
         self.width = width
         self.height = height
         self.name = name
+        self.current_uid = 1 # must be prime numbers
 
-        self.space = np.zeros((width, height), dtype=int)
-        self.objects = []
+        # Maybe change to all one array?
+        self.uid_space = np.zeros((width, height), dtype=int)   #unique id space for moving objects around
+        self.taken_space = np.zeros((width, height), dtype=bool)#space taken by objects, including reserved space
+        self.open_space = np.zeros((width, height), dtype=bool) #space that is not taken by objects, not including reserved space
+        self.objects = defaultdict(object) #objects in the room, key is the object uid
+
+
+    def __str__(self):
+        return f"Room | Width: {self.width}, Height: {self.height}, Number of Objects: {len(self.objects)}\n" \
+                f"Objects: {[self.objects[i].name for i in range(len(self.objects))]}"
+
+
+    def next_uid(self):
+        """
+        Returns the next prime number for unique id.
+        """
+        self.current_uid = nextprime(self.current_uid)
+        return self.current_uid
+    
 
     def add_object(self, object, x, y, rotation):
         """
@@ -124,26 +100,93 @@ class Room:
         """
         if self.fits(object, x, y, rotation):
             object.set_position(x, y, rotation)
-            self.objects.append(object)
+            self.add_object_to_space(object)
             return True
         else:
             return False
+        
 
-    def fits(self, object, x, y, rotation):
+    def fits(self, object: Object, x: int, y: int, rotation: Rotation):
         """
-        Checks if object fits in the room.
+        Checks if object fits in the room at position x, y with rotation.
         """
-        if rotation == Rotation.UP:
-            return x + object.width <= self.width and y + object.depth <= self.depth
-        elif rotation == Rotation.RIGHT:
-            return x + object.depth <= self.width and y + object.width <= self.depth
-        elif rotation == Rotation.DOWN:
-            return x + object.width <= self.width and y + object.depth <= self.depth
-        elif rotation == Rotation.LEFT:
-            return x + object.depth <= self.width and y + object.width <= self.depth
-        else:
+        if(rotation == Rotation.TBD):
             return False
+        if(x < 0 or y < 0 or y > self.height - 1 or x > self.width - 1): #check if object is outside of room
+            return False
+                
+        depth = object.depth + object.reserved_space
+        # Check direction of object, and if it fits in the room. Iterate through the space the object will take up.
+        if (rotation == Rotation.UP) and (x + object.width < self.width and y + depth < self.height):
+            for i in range(object.width):
+                for j in range(depth):
+                    if self.taken_space[x + i][y + j]:
+                        return False
+        elif (rotation == Rotation.RIGHT) and (x + depth < self.width and y + object.width < self.height):
+            for i in range(depth):
+                for j in range(object.width):
+                    if self.taken_space[x + i][y + j]:
+                        return False
+        elif (rotation == Rotation.DOWN) and (x + object.width < self.width and y + object.depth < self.height) and (y - object.reserved_space >= 0):
+            for i in range(object.width):
+                for j in range(-object.reserved_space, object.depth):
+                    if self.taken_space[x + i][y + j]:
+                        return False
+        elif (rotation == Rotation.LEFT) and (x + object.depth < self.width and y + object.width < self.height) and (x - object.reserved_space >= 0):
+            for i in range(-object.reserved_space, object.depth):
+                for j in range(object.width):
+                    if self.taken_space[x + i][y + j]:
+                        return False
+        # elif (rotation == Rotation.DOWN) and (x + object.width < self.width and y + depth < self.height):
+        #     for i in range(object.width):
+        #         for j in range(depth):
+        #             if self.taken_space[x + i][y + j]:
+        #                 return False
+        # elif (rotation == Rotation.LEFT) and (x + depth < self.width and y + object.width < self.height):
+        #     for i in range(depth):
+        #         for j in range(object.width):
+        #             if self.taken_space[x + i][y + j]:
+        #                 return False
+        else:
+            return False    # Doesn't fit in the room
+        
+        return True
+        
 
-    def __str__(self):
-        return f"Room | Width: {self.width}, Height: {self.height}, Number of Objects: {len(self.objects)}\n" \
-                f"Objects: {[self.objects[i].name for i in range(len(self.objects))]}"
+    def add_object_to_space(self, object: Object):
+        """
+        Updates the space taken by the object in the room.
+        """
+        object.uid = self.next_uid()
+        self.objects[object.uid] = object
+
+        if object.rotation == Rotation.UP:
+            self.uid_space[object.x : object.x + object.width, object.y : object.y + object.depth + object.reserved_space] = object.uid
+            self.taken_space[object.x : object.x + object.width, object.y : object.y + object.depth + object.reserved_space] = True
+            self.open_space[object.x : object.x + object.width, object.y : object.y + object.depth] = True
+        elif object.rotation == Rotation.RIGHT:
+            self.uid_space[object.x : object.x + object.depth + object.reserved_space, object.y : object.y + object.width] = object.uid
+            self.taken_space[object.x : object.x + object.depth + object.reserved_space, object.y : object.y + object.width] = True
+            self.open_space[object.x : object.x + object.depth, object.y : object.y + object.width] = True
+        elif object.rotation == Rotation.DOWN:
+            self.uid_space[object.x : object.x + object.width, object.y - object.reserved_space : object.y + object.depth] = object.uid
+            self.taken_space[object.x : object.x + object.width, object.y - object.reserved_space : object.y + object.depth] = True
+            self.open_space[object.x : object.x + object.width, object.y : object.y + object.depth] = True
+        elif object.rotation == Rotation.LEFT:
+            self.uid_space[object.x - object.reserved_space : object.x + object.depth, object.y : object.y + object.width] = object.uid
+            self.taken_space[object.x - object.reserved_space : object.x + object.depth, object.y : object.y + object.width] = True
+            self.open_space[object.x : object.x + object.depth, object.y : object.y + object.width] = True
+        else:
+            raise AttributeError("UNKNOWN")
+
+
+
+if __name__ == "__main__":
+    # Test
+    room = Room(100, 100, "Test Room")
+    print(room)
+
+    table1 = Object(10, 10, 0, 1, 1, "Table")
+    couch1 = Object(10, 10, 0, 2, 2, "Couch")
+    print(table1)
+    print(couch1)
