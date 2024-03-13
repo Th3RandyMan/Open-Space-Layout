@@ -266,7 +266,8 @@ class Room:
         Check for collisions in the new space.
         """
         X = [np.round(xi) for xi in X_float]
-        new_uid_space = np.ones((self.width, self.height), dtype=int)
+        new_uid_space = np.ones((self.width, self.height), dtype=int) # May need to change the dtype to something larger
+        new_open_space = np.zeros((self.width, self.height), dtype=bool)
         conflicts = set()
         uid_to_X = defaultdict(tuple)
 
@@ -276,12 +277,14 @@ class Room:
                 obj = self.objects[uid]
                 uid_to_X[uid] = (i,j)
                 x, y = X[i][j][0] + obj.x, X[i][j][1] + obj.y
-                if x < 0:
-                    x = 0
-                if y < 0:
-                    y = 0
-
-                rotation = (X[i][j][2] + obj.rotation)%4 if X[i].shape[1] == 3 else obj.rotation
+                # If rotatable, update rotation
+                if(X[i].shape[1] == 3):
+                    # Check if rotating toward zero
+                    rotation
+                    rotation = (rotation + obj.rotation)%4
+                else:
+                    rotation = obj.rotation
+                #rotation = (X[i][j][2] + obj.rotation)%4 if X[i].shape[1] == 3 else obj.rotation
 
                 if rotation == Rotation.UP:
                     if x < 0:
@@ -293,6 +296,7 @@ class Room:
                     elif y + obj.depth + obj.reserved_space > self.height:
                         y = self.height - obj.depth - obj.reserved_space
                     new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] *= obj.uid
+                    new_open_space[x : x + obj.width, y : y + obj.depth] = True
                     conf = np.where(new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] > obj.uid)
 
                 elif obj.rotation == Rotation.RIGHT:
@@ -305,6 +309,7 @@ class Room:
                     elif y + obj.width > self.height:
                         y = self.height - obj.width
                     new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] *= obj.uid
+                    new_open_space[x : x + obj.depth, y : y + obj.width] = True
                     conf = np.where(new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] > obj.uid)                 
 
                 elif obj.rotation == Rotation.DOWN:
@@ -317,6 +322,7 @@ class Room:
                     elif y + obj.depth > self.height:
                         y = self.height - obj.depth
                     new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] *= obj.uid
+                    new_open_space[x : x + obj.width, y : y + obj.depth] = True
                     conf = np.where(new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] > obj.uid)
 
                 elif obj.rotation == Rotation.LEFT:
@@ -329,6 +335,7 @@ class Room:
                     elif y + obj.width > self.height:
                         y = self.height - obj.width
                     new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] *= obj.uid
+                    new_open_space[x : x + obj.depth, y : y + obj.width] = True
                     conf = np.where(new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] > obj.uid)
 
                 else:
@@ -353,7 +360,7 @@ class Room:
                     pass
             #new_uid_space[conf] = 0
 
-
+        print(self._is_contiguous(new_open_space))
 
         return True # Change this
 
@@ -368,17 +375,84 @@ class Room:
         
         factors = set(reduce(list.__add__,([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))
         return factors.pop()
+    
+    def _is_contiguous(self, space: np.ndarray) -> bool:
+        """
+        Check if the space is contiguous.
+        :param space: boolean np.ndarray
+        """
+        n_nodes = np.ceil(np.prod(space.shape)/2)
+        edges = np.zeros((n_nodes, n_nodes), dtype=bool)
+        # Create edges for the empty space
+        for i in range(0, space.shape[0], 2): # WOULD THIS WORK?
+            for j in range(0, space.shape[1], 2):
+                if i < space.shape[0] - 2: # Check if the next column is empty
+                    edges[i//2, j//2] = not(space[i, j] or space[i+1, j])
+                    if j < space.shape[1] - 2:
+                        edges[i//2, j//2] = not(space[i, j] or space[i, j+1])
+                        # NEED TO ADJUST ALL OF THIS WITH EDGE INDEXING
+                elif j < space.shape[1] - 2: # Last column, check if the next row is empty
+                    edges[i//2, j//2] = not(space[i, j] or space[i, j+1])
+        
+        # Check if the graph is connected
+        visited = np.zeros(n_nodes, dtype=bool) # List of visited nodes
+        stack = [0] # Stack for DFS
+        while stack: # While stack is not empty
+            node = stack.pop()  # Pop the last node
+            if not visited[node]:   # If the node hasn't been visited
+                visited[node] = True
+                stack.extend([i for i in range(n_nodes) if edges[node, i]]) # Add the connected nodes to the stack
 
+        return np.all(visited) # If all nodes have been visited, the graph is connected
+
+    # Could implement the orignal optimization function
     def evaluate(self) -> float:
         """
         Evaluate the objective function.
         """
         # Get value of open space here!
-        fobj = 0.0
-        return fobj
+        #fobj = 0.0
+        contour_map = np.zeros((self.width, self.height), dtype=int)
+        for i in range(self.width):
+            for j in range(self.height):
+                open_width = self._get_open_width(i,j)
+                open_height = self._get_open_height(i,j)
+                contour_map[i][j] = open_width*open_height
+        return np.sum(contour_map)/(np.prod(contour_map.shape)**2)
 
-
-
+    def _get_open_width(self, x, y) -> int:
+        """
+        Get the width of the open space at position x, y.
+        """
+        width = 0
+        for i in range(x, self.width):
+            if not self.open_space[i][y]:
+                width += 1
+            else:
+                break
+        for i in range(x, -1, -1):
+            if not self.open_space[i][y]:
+                width += 1
+            else:
+                break
+        return width
+    
+    def _get_open_height(self, x, y) -> int:
+        """
+        Get the height of the open space at position x, y.
+        """
+        height = 0
+        for j in range(y, self.height):
+            if not self.open_space[x][j]:
+                height += 1
+            else:
+                break
+        for j in range(y, -1, -1):
+            if not self.open_space[x][j]:
+                height += 1
+            else:
+                break
+        return height
 
 if __name__ == "__main__":
     # Test

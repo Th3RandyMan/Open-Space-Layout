@@ -19,8 +19,13 @@
         # 2. Use a list of conflict objects. Each object consists of location (x,y) and list of uid with conflicts. If single
             # object is in list, no conflicts.
         
-
-
-
 # Value of open space without exhaustive search
     # Grouping distances from objects and walls.
+
+
+To do:
+    * Finish set_X function 
+        * Need to resolve conflicts
+        * Need to check if white space is contiguous
+            * If not contiguous, create noise near disconnections
+    * Check if evaluate is good. Replace if not

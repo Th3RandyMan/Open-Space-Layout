@@ -1,7 +1,7 @@
 import numpy as np
 from Storage import Object, Room, Rotation
 from random import randint, random
-
+from matplotlib import pyplot as plt
 
 class Firefly:
     """
@@ -69,8 +69,18 @@ class Firefly:
         """
         Evaluates the objective function of the firefly.
         """
-        self.room.evaluate()
-        self.fobj = self.room.fobj
+        # self.room.evaluate()
+        # self.fobj = self.room.fobj
+        self.fobj = self.room.evaluate()
+        # print(f"Firefly {self.room.name} - Objective Function: {self.fobj}")
+        # plt.subplot(1, 2, 1)
+        # plt.imshow(self.room.uid_map(), origin='lower')
+        # plt.title("UID Space")
+
+        # plt.subplot(1, 2, 2)
+        # plt.imshow(self.room.open_map(), origin='lower')
+        # plt.title(f"Open Space {self.fobj}")
+        # plt.show()
         return self.fobj
     
 
@@ -126,7 +136,7 @@ class FA:
         for firefly in self.fireflies:
             firefly.evaluate()
         # Sort fireflies by objective function value
-        self.fireflies.sort(key=lambda x: x.fobj)
+        self.fireflies.sort(key=lambda x: x.fobj, reverse=True)
         # Initialize the best solution
         best = self.fireflies[0]
         # Main loop
@@ -140,7 +150,7 @@ class FA:
                         # Evaluate the objective function
                         self.fireflies[i].evaluate()
             # Sort fireflies by objective function value
-            self.fireflies.sort(key=lambda x: x.fobj)
+            self.fireflies.sort(key=lambda x: x.fobj, reverse=True)
             # Update the best solution
             if self.fireflies[0].fobj < best.fobj:
                 best = self.fireflies[0]
@@ -210,11 +220,13 @@ if __name__ == "__main__":
     # Example usage of the Firefly Algorithm (FA)
     table1 = Object(10, 10, 5, 1, "Table") 
     couch1 = Object(30, 10, 8, 2, "Couch")
+    desk1 = Object(20, 10, 5, 4, "Desk")
     door1 = Object(10, 0, 8, 3, "Door", rotation=Rotation.UP, rotatable=False, moveable=False)
+    # ADD IN XY FOR DOOR
 
     width = 100
     height = 100
-    objects = [table1, couch1, door1]
+    objects = [table1, couch1, door1,desk1,desk1,desk1]
     N = 10  # Number of fireflies
     T = 10  # Number of iterations
 
