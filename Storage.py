@@ -284,33 +284,49 @@ class Room:
                 rotation = (X[i][j][2] + obj.rotation)%4 if X[i].shape[1] == 3 else obj.rotation
 
                 if rotation == Rotation.UP:
-                    if x + obj.width > self.width:
+                    if x < 0:
+                        x = 0
+                    elif x + obj.width > self.width:
                         x = self.width - obj.width
-                    if y + obj.depth + obj.reserved_space > self.height:
+                    if y < 0:
+                        y = 0
+                    elif y + obj.depth + obj.reserved_space > self.height:
                         y = self.height - obj.depth - obj.reserved_space
                     new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] *= obj.uid
                     conf = np.where(new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] > obj.uid)
 
                 elif obj.rotation == Rotation.RIGHT:
-                    if x + obj.depth + obj.reserved_space > self.width:
+                    if x < 0:
+                        x = 0
+                    elif x + obj.depth + obj.reserved_space > self.width:
                         x = self.width - obj.depth - obj.reserved_space
-                    if y + obj.width > self.height:
+                    if y < 0:   
+                        y = 0
+                    elif y + obj.width > self.height:
                         y = self.height - obj.width
                     new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] *= obj.uid
                     conf = np.where(new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] > obj.uid)                 
 
                 elif obj.rotation == Rotation.DOWN:
-                    if x + obj.width > self.width:
+                    if x < 0:
+                        x = 0
+                    elif x + obj.width > self.width:
                         x = self.width - obj.width
-                    if y + obj.depth > self.height:
+                    if y < - obj.reserved_space:
+                        y = -obj.reserved_space
+                    elif y + obj.depth > self.height:
                         y = self.height - obj.depth
                     new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] *= obj.uid
                     conf = np.where(new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] > obj.uid)
 
                 elif obj.rotation == Rotation.LEFT:
-                    if x + obj.depth > self.width:
+                    if x < - obj.reserved_space:
+                        x = -obj.reserved_space
+                    elif x + obj.depth > self.width:
                         x = self.width - obj.depth
-                    if y + obj.width > self.height:
+                    if y < 0:
+                        y = 0
+                    elif y + obj.width > self.height:
                         y = self.height - obj.width
                     new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] *= obj.uid
                     conf = np.where(new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] > obj.uid)
