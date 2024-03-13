@@ -34,7 +34,7 @@ class Object: # May want to change name to not confuse with object class (lower 
     common for all objects. Position of objects will always be referenced from the bottom 
     left corner of the object.
     """
-    def __init__(self, width: int, depth: int, reserved_space: int, name: str, id: int=None, rotation: Rotation = Rotation.TBD, moveable: bool = True, rotatable: bool = True):
+    def __init__(self, width: int, depth: int, reserved_space: int, name: str, id: int=-1, rotation: Rotation = Rotation.TBD, moveable: bool = True, rotatable: bool = True):
         self.width = width
         self.depth = depth
         self.reserved_space = reserved_space
@@ -113,7 +113,7 @@ class Room:
         """
         Adds object to the room.
         """
-        if self.fits(object, x, y, rotation):
+        if self._fits(object, x, y, rotation):
             object.set_position(x, y, rotation)
             self._add_object_to_space(object)
             return True
