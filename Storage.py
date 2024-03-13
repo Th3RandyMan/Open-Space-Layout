@@ -34,7 +34,7 @@ class Object: # May want to change name to not confuse with object class (lower 
     common for all objects. Position of objects will always be referenced from the bottom 
     left corner of the object.
     """
-    def __init__(self, width: int, depth: int, reserved_space: int, id: int, name: str, rotation: Rotation = Rotation.TBD, moveable: bool = True, rotatable: bool = True):
+    def __init__(self, width: int, depth: int, reserved_space: int, name: str, id: int=None, rotation: Rotation = Rotation.TBD, moveable: bool = True, rotatable: bool = True):
         self.width = width
         self.depth = depth
         self.reserved_space = reserved_space
@@ -71,6 +71,7 @@ class Room:
     """
     
     """
+    fobj = None # objective function
     X = [] # location in solution space
 
     def __init__(self, width, height, name):
@@ -81,14 +82,14 @@ class Room:
         self.current_rid = 0 # reference id for objects of the same shape
 
         # Maybe change to all one array?
-        self.uid_space = np.zeros((width, height), dtype=int)   #unique id space for moving objects around
+        self.uid_space = np.ones((width, height), dtype=int)   #unique id space for moving objects around
         self.taken_space = np.zeros((width, height), dtype=bool)#space taken by objects, including reserved space
         self.open_space = np.zeros((width, height), dtype=bool) #space that is not taken by objects, not including reserved space
         self.objects = defaultdict(Object) #objects in the room, key is the object uid
         self.moveable_shapes = defaultdict(list) #list of objects with the same shape, key is the shape index
         #self.rid_list = list[int] #list of reference ids for objects of the same shape
 
-    def get_inventory(self):
+    def get_inventory(self) -> list[str]:
         """
         """
         obj_list = [self.objects[uid].name for uid in self.objects.keys()]
@@ -100,7 +101,7 @@ class Room:
                 f"Objects: {self.get_inventory()}"
 
 
-    def next_uid(self):
+    def next_uid(self) -> int:
         """
         Returns the next prime number for unique id.
         """
@@ -108,19 +109,19 @@ class Room:
         return self.current_uid
     
 
-    def add_object(self, object, x, y, rotation):
+    def add_object(self, object, x, y, rotation) -> bool:
         """
         Adds object to the room.
         """
         if self.fits(object, x, y, rotation):
             object.set_position(x, y, rotation)
-            self.add_object_to_space(object)
+            self._add_object_to_space(object)
             return True
         else:
             return False
         
 
-    def fits(self, object: Object, x: int, y: int, rotation: Rotation):
+    def _fits(self, object: Object, x: int, y: int, rotation: Rotation) -> bool:
         """
         Checks if object fits in the room at position x, y with rotation.
         """
@@ -167,7 +168,7 @@ class Room:
         return True
         
 
-    def add_object_to_space(self, object: Object):
+    def _add_object_to_space(self, object: Object) -> None:
         """
         Updates the space taken by the object in the room.
         """
@@ -195,20 +196,20 @@ class Room:
         else:
             raise AttributeError("UNKNOWN")
         
-    def uid_map(self):
+    def uid_map(self) -> np.ndarray:
         """
         Returns the uid space.
         """
         return self.uid_space.transpose()
     
-    def open_map(self):
+    def open_map(self) -> np.ndarray:
         """
         Returns the open space.
         """
         return self.open_space.transpose()
     
 
-    def get_X(self) -> tuple[list[np.ndarray], list[int]]:
+    def get_X(self) -> list[np.ndarray]:
         """
         Get solution space X.
         """
@@ -251,6 +252,14 @@ class Room:
                 if X[i].shape[1] == 3:
                     obj.rotation = X[i][j][2]
 
+    def evaluate(self) -> float:
+        """
+        Evaluate the objective function.
+        """
+        # Get value of open space here!
+        fobj = 0.0
+        return fobj
+
 
 
 
@@ -274,7 +283,7 @@ if __name__ == "__main__":
     print(f"Solution: {room.get_X()}")
 
     plt.subplot(1, 2, 1)
-    plt.imshow(room.uid_map(), origin='lower')#np.flip(room.uid_space))
+    plt.imshow(room.uid_map(), origin='lower')
     plt.title("UID Space")
 
     plt.subplot(1, 2, 2)
