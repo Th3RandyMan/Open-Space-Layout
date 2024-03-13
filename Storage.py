@@ -79,7 +79,7 @@ class Room:
         self.height = height
         self.name = name
         self.current_uid = 1 # must be prime numbers
-        self.current_rid = 0 # reference id for objects of the same shape
+        #self.current_rid = 0 # reference id for objects of the same shape
 
         # Maybe change to all one array?
         self.uid_space = np.ones((width, height), dtype=int)   #unique id space for moving objects around
@@ -208,7 +208,6 @@ class Room:
         """
         return self.open_space.transpose()
     
-
     def get_X(self) -> list[np.ndarray]:
         """
         Get solution space X.
@@ -244,13 +243,65 @@ class Room:
         """
         Set solution space X.
         """
+        X_round = [np.round(xi) for xi in X]
+        valid, new_uid_space = self.check_space(X_round)
+        # np.ones((self.width, self.height), dtype=int)#self.uid_space
+        # for i, key in enumerate(self.moveable_shapes.keys()):
+        #     for j, uid in enumerate(self.moveable_shapes[key]):
+        #         obj = self.objects[uid]
+        #         X_round[i][j] # x, y, rotation adjustments
+
+
+        # for i, key in enumerate(self.moveable_shapes.keys()):
+        #     for j, uid in enumerate(self.moveable_shapes[key]):
+        #         obj = self.objects[uid]
+        #         obj.x = X[i][j][0]
+        #         obj.y = X[i][j][1]
+        #         if X[i].shape[1] == 3:
+        #             obj.rotation = X[i][j][2]
+    
+    def check_space(self, X: list[np.ndarray]) -> tuple[bool,np.ndarray,set]:
+        """
+        Check for collisions in the new space.
+        """
+        new_uid_space = np.ones((self.width, self.height), dtype=int)
+        conflicts = set()
+
         for i, key in enumerate(self.moveable_shapes.keys()):
             for j, uid in enumerate(self.moveable_shapes[key]):
                 obj = self.objects[uid]
-                obj.x = X[i][j][0]
-                obj.y = X[i][j][1]
-                if X[i].shape[1] == 3:
-                    obj.rotation = X[i][j][2]
+                x, y = X[i][j][0] + obj.x, X[i][j][1] + obj.y
+                rotation = (X[i][j][2] + obj.rotation)%4 if X[i].shape[1] == 3 else obj.rotation
+
+                if rotation == Rotation.UP:
+                    conf = np.where(new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] > obj.uid)
+                    if conf[0].size > 0:
+                        new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] = obj.uid
+                        conflicts.append((obj.uid, conf))
+                elif obj.rotation == Rotation.RIGHT:
+                    conf = np.where(new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] > obj.uid)
+                    if conf[0].size > 0:
+                        new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] = obj.uid
+                        conflicts.append((obj.uid, conf))                    
+                elif obj.rotation == Rotation.DOWN:
+                    conf = np.where(new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] > obj.uid)
+                    if conf[0].size > 0:
+                        new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] = obj.uid
+                        conflicts.append((obj.uid, conf))
+                elif obj.rotation == Rotation.LEFT:
+                    conf = np.where(new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] > obj.uid)
+                    if conf[0].size > 0:
+                        new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] = obj.uid
+                        conflicts.append((obj.uid, conf))
+                else:
+                    raise AttributeError("UNKNOWN")
+
+        # Maybe remove uid from space when causing conflict
+        # Maybe add uid of conflicting object to conflicts set
+        valid = len(conflicts) == 0 # if no conflicts, valid is True
+        return valid, new_uid_space, conflicts
+
+                
 
     def evaluate(self) -> float:
         """

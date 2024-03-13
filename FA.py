@@ -149,8 +149,8 @@ class FA:
 if __name__ == "__main__":
     # Example usage of the Firefly Algorithm (FA)
     table1 = Object(10, 10, 5, 1, "Table") 
-    couch1 = Object(40, 40, 5, 2, "Couch")
-    door1 = Object(80, 0, 10, 3, "Door", rotation=Rotation.UP, rotatable=False, moveable=False)
+    couch1 = Object(30, 10, 8, 2, "Couch")
+    door1 = Object(10, 0, 8, 3, "Door", rotation=Rotation.UP, rotatable=False, moveable=False)
 
     width = 100
     height = 100
