@@ -147,6 +147,65 @@ class FA:
         return best.room
 
 
+#COULD REPLACE ALPHA and GAMMA WITH A FUNCTION LIKE IN DbFA
+# class DbFA:
+
+#     """
+#     Firefly Algorithm (FA) with dynamic alpha and gamma parameters.
+#     """
+#     def __init__(self, objects:list[Object], width:int, height:int, N:int, T:int, ohm:float=0.2, beta0:float=1.0, lamb:float=1.0, name:str="Room"):
+#         """
+#         Initializes the Firefly Algorithm (FA) with the following parameters:
+#         :param objects: List of objects to be placed in the room
+#         :param width: Width of the room
+#         :param height: Height of the room
+#         :param N: Number of fireflies
+#         :param T: Number of iterations
+#         :param ohm: Randomness parameter
+#         :param beta0: Attraction coefficient
+#         :param lamb: Light absorption parameter
+#         """
+#         self.N = N
+#         self.T = T
+#         self.ohm = ohm
+#         self.beta0 = beta0
+#         self.lamb = lamb
+#         self.fireflies = [Firefly(objects, width, height, name + str(i)) for i in range(self.N)]
+
+#     def alpha(self, t:int) -> float:
+#         """
+#         Function to calculate the randomness parameter alpha.
+#         """
+#         return (0.5^(t/self.T))*np.exp(-self.ohm*(self.T - t)/self.T) # NEED TO PASS t FROM OPTIMIZE FUNCTION
+
+#     def gamma(self) -> float:
+#         """
+#         Function to calculate the light absorption parameter gamma.
+#         """
+#         f = (sg - smin)/(smax - smin) # NEED TO DEFINE sg, smin, smax
+#         return 1/(1 + (10E3)*self.lamb*np.exp(-self.lamb*f))
+
+#     def move_firefly(self, firefly1:Firefly, firefly2:Firefly, t:int) -> None:
+#         """
+#         Move firefly1 towards firefly2.
+#         :param firefly1: First firefly
+#         :param firefly2: Second firefly
+#         """
+#         X = []
+#         X1 = firefly1.get_X()
+#         X2 = firefly2.get_X()
+#         for xi1, xi2 in zip(X1, X2):
+#             # Calculate the Euclidean distance
+#             r = np.sqrt((xi1 - xi2)**2)
+#             # Calculate the attractiveness
+#             beta = self.beta0 * np.exp(-self.gamma() * r**2) 
+#             # Update the position of firefly1
+#             xi = xi1 + beta * (xi2 - xi1) + self.alpha(t) * (random() - 0.5)
+#             X.append(xi)
+#         if not firefly1.set_X(X):
+#             raise ValueError("Invalid position") # Should avoid this case
+
+
 if __name__ == "__main__":
     # Example usage of the Firefly Algorithm (FA)
     table1 = Object(10, 10, 5, 1, "Table") 

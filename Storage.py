@@ -323,6 +323,8 @@ class Room:
                     #uid_to_X[uid] = (i,j) # store the uid and its position in X
 
         # Resolve conflicts
+                    # NOTES: IF OBJECT HASN'T MOVED, GIVE IT THE POSITION
+                    # IF ALL OBJECTS HAVE MOVED, EITHER UNIFORM DISTRIBUTION OR GIVE WEIGHT TO CLOSER OBJECTS
         for conf in conflicts:
             uid_list = [self._factorize(num) for num in new_uid_space[conf]] # Get the uids fighting for the space
             #probability = []
