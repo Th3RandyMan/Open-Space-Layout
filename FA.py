@@ -98,7 +98,7 @@ class FA:
         self.gamma = gamma
         self.fireflies = [Firefly(objects, width, height, name + str(i)) for i in range(self.N)]
     
-    def move_firefly(self, firefly1:Firefly, firefly2:Firefly) -> float:
+    def move_firefly(self, firefly1:Firefly, firefly2:Firefly) -> None:
         """
         Move firefly1 towards firefly2.
         :param firefly1: First firefly
@@ -115,7 +115,8 @@ class FA:
             # Update the position of firefly1
             xi = xi1 + beta * (xi2 - xi1) + self.alpha * (random() - 0.5)
             X.append(xi)
-        firefly1.set_X(X)
+        if not firefly1.set_X(X):
+            raise ValueError("Invalid position") # Should avoid this case
 
     def optimize(self) -> Room:
         """

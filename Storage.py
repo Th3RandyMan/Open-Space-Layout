@@ -4,6 +4,7 @@ from numpy.linalg import norm
 from enum import IntEnum
 from sympy import nextprime
 from collections import Counter
+from functools import reduce
 
 class Rotation(IntEnum):
     """
@@ -239,12 +240,12 @@ class Room:
         self.X = X
         return X
     
-    def set_X(self, X: list[np.ndarray]):
-        """
-        Set solution space X.
-        """
-        X_round = [np.round(xi) for xi in X]
-        valid, new_uid_space = self.check_space(X_round)
+    # def set_X(self, X: list[np.ndarray]):
+    #     """
+    #     Set solution space X.
+    #     """
+    #     X_round = [np.round(xi) for xi in X]
+    #     valid, new_uid_space = self.check_space(X_round)
         # np.ones((self.width, self.height), dtype=int)#self.uid_space
         # for i, key in enumerate(self.moveable_shapes.keys()):
         #     for j, uid in enumerate(self.moveable_shapes[key]):
@@ -260,48 +261,95 @@ class Room:
         #         if X[i].shape[1] == 3:
         #             obj.rotation = X[i][j][2]
     
-    def check_space(self, X: list[np.ndarray]) -> tuple[bool,np.ndarray,set]:
+    def set_X(self, X_float: list[np.ndarray]) -> bool:
         """
         Check for collisions in the new space.
         """
+        X = [np.round(xi) for xi in X_float]
         new_uid_space = np.ones((self.width, self.height), dtype=int)
         conflicts = set()
+        uid_to_X = defaultdict(tuple)
 
+        # Create new uid space and check for conflicts
         for i, key in enumerate(self.moveable_shapes.keys()):
             for j, uid in enumerate(self.moveable_shapes[key]):
                 obj = self.objects[uid]
+                uid_to_X[uid] = (i,j)
                 x, y = X[i][j][0] + obj.x, X[i][j][1] + obj.y
+                if x < 0:
+                    x = 0
+                if y < 0:
+                    y = 0
+
                 rotation = (X[i][j][2] + obj.rotation)%4 if X[i].shape[1] == 3 else obj.rotation
 
                 if rotation == Rotation.UP:
+                    if x + obj.width > self.width:
+                        x = self.width - obj.width
+                    if y + obj.depth + obj.reserved_space > self.height:
+                        y = self.height - obj.depth - obj.reserved_space
+                    new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] *= obj.uid
                     conf = np.where(new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] > obj.uid)
-                    if conf[0].size > 0:
-                        new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] = obj.uid
-                        conflicts.append((obj.uid, conf))
+
                 elif obj.rotation == Rotation.RIGHT:
-                    conf = np.where(new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] > obj.uid)
-                    if conf[0].size > 0:
-                        new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] = obj.uid
-                        conflicts.append((obj.uid, conf))                    
+                    if x + obj.depth + obj.reserved_space > self.width:
+                        x = self.width - obj.depth - obj.reserved_space
+                    if y + obj.width > self.height:
+                        y = self.height - obj.width
+                    new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] *= obj.uid
+                    conf = np.where(new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] > obj.uid)                 
+
                 elif obj.rotation == Rotation.DOWN:
+                    if x + obj.width > self.width:
+                        x = self.width - obj.width
+                    if y + obj.depth > self.height:
+                        y = self.height - obj.depth
+                    new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] *= obj.uid
                     conf = np.where(new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] > obj.uid)
-                    if conf[0].size > 0:
-                        new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] = obj.uid
-                        conflicts.append((obj.uid, conf))
+
                 elif obj.rotation == Rotation.LEFT:
+                    if x + obj.depth > self.width:
+                        x = self.width - obj.depth
+                    if y + obj.width > self.height:
+                        y = self.height - obj.width
+                    new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] *= obj.uid
                     conf = np.where(new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] > obj.uid)
-                    if conf[0].size > 0:
-                        new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] = obj.uid
-                        conflicts.append((obj.uid, conf))
+
                 else:
                     raise AttributeError("UNKNOWN")
-
-        # Maybe remove uid from space when causing conflict
-        # Maybe add uid of conflicting object to conflicts set
-        valid = len(conflicts) == 0 # if no conflicts, valid is True
-        return valid, new_uid_space, conflicts
-
                 
+                if conf[0].size > 0:    # If there are conflicts, add to set
+                    conflicts.append(conf)
+                    #uid_to_X[uid] = (i,j) # store the uid and its position in X
+
+        # Resolve conflicts
+        for conf in conflicts:
+            uid_list = [self._factorize(num) for num in new_uid_space[conf]] # Get the uids fighting for the space
+            #probability = []
+            #prob = 1/len(uid_list)
+            for uid in uid_list:
+                i, j = uid_to_X[uid]
+                x, y = X[i][j][0], X[i][j][1]
+                # Check if object hasn't moved. Give it the position if it hasn't moved
+                if x == 0 and y == 0:
+                    pass
+            #new_uid_space[conf] = 0
+
+
+
+        return True # Change this
+
+    def _factorize(self, n: int) -> list[int]:
+        """
+        Returns the factors of n.
+        :param n: int to factorize
+        :return: list of factors
+        """
+        if n <= 1:
+            return []
+        
+        factors = set(reduce(list.__add__,([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))
+        return factors.pop()
 
     def evaluate(self) -> float:
         """
