@@ -6,6 +6,7 @@ from sympy import nextprime
 from collections import Counter
 from functools import reduce
 from matplotlib import pyplot as plt
+from skimage.measure import label
 
 class Rotation(IntEnum):
     """
@@ -396,44 +397,10 @@ class Room:
         """
         Check if the space is contiguous.
         :param space: boolean np.ndarray
+        :return: True if contiguous, False otherwise
         """
-        
-        open_space_index = np.where(space == False)
-        open_space_index = list(zip(open_space_index[0], open_space_index[1]))
-        
-        index = 1
-        group = [open_space_index[0]]   # Start with the first open space
-        for target in group:
-            if index >= len(open_space_index):
-                break
-
-            found = False
-            directions = [(target[0] - 1, target[1]), (target[0] + 1, target[1]), (target[0], target[1] - 1), (target[0], target[1] + 1)]
-            for d in directions:
-                if d[0] < 0 or d[1] < 0 or d[0] >= self.width or d[1] >= self.height:
-                    directions.remove(d)
-
-            # Check if the next space is connected (speed up)
-            for d in directions:
-                if d == open_space_index[index] and d not in group:
-                    group.append(d)
-                    found = True
-                    index += 1
-                    break
-
-            if not found:   # If the next space is not connected, check the rest of the spaces (slow down)
-                for d in directions:
-                    if d in open_space_index and d not in group:
-                        group.append(d)
-                        found = True
-                        index += 1
-                        break
-                
-                if not found:
-                    return False
-        
-        raise NotImplementedError("Not implemented yet")
-        return len(group) == len(open_space_index)
+        _,num = label(space, connectivity=1, background=1, return_num=True)
+        return num == 1
 
     # Could implement the orignal optimization function
     def evaluate(self, optimize_type = "open_dist") -> float:
