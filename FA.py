@@ -19,9 +19,18 @@ class Firefly:
         """
         Generates a random solution vector for the room layout.
         """
+        # Find unmovable objects and remove them from the list
+        unmovable = [obj for obj in objects if not obj.moveable]
+        for id, obj in enumerate(unmovable):
+            if not self.room.add_object(obj, obj.x, obj.y, obj.rotation):
+                raise ValueError("Invalid position")
+            obj.id = id # Set the id of the object by its index in the list
+            objects.remove(obj)
+        id_offset = len(unmovable)
+
         # Add objects to the room in random positions
         for id, obj in enumerate(objects):
-            obj.id = id # Set the id of the object by its index in the list
+            obj.id = id + id_offset # Set the id of the object by its index in the list
             valid = False
             # Try to add the object to the room until a valid position is found
             while not valid:
@@ -45,7 +54,7 @@ class Firefly:
                 else:
                     raise ValueError("Invalid rotation value")
                 # Add object to the room if the position is valid
-                valid =  self.room.add_object(obj, x, y, obj.rotation)
+                valid = self.room.add_object(obj, x, y, obj.rotation)
 
     def __str__(self) -> str:
         """
@@ -65,22 +74,26 @@ class Firefly:
         """
         self.room.set_X(X)
 
-    def evaluate(self) -> float:
+    def evaluate(self, optimize_type) -> float:
         """
         Evaluates the objective function of the firefly.
         """
-        # self.room.evaluate()
-        # self.fobj = self.room.fobj
-        self.fobj = self.room.evaluate()
-        # print(f"Firefly {self.room.name} - Objective Function: {self.fobj}")
-        # plt.subplot(1, 2, 1)
-        # plt.imshow(self.room.uid_map(), origin='lower')
-        # plt.title("UID Space")
+        self.fobj = self.room.evaluate(optimize_type)
+        cont = self.room._is_contiguous(self.room.open_space)
+        print(f"Firefly {self.room.name} - Objective Function: {self.fobj}")
+        print(cont)
+        plt.subplot(1, 2, 1)
+        plt.imshow(self.room.uid_map(), origin='lower')
+        plt.title("UID Space")
 
-        # plt.subplot(1, 2, 2)
-        # plt.imshow(self.room.open_map(), origin='lower')
-        # plt.title(f"Open Space {self.fobj}")
-        # plt.show()
+        plt.subplot(1, 2, 2)
+        plt.imshow(self.room.open_map(), origin='lower')
+        plt.title(f"Open Space {self.fobj}")
+        plt.show()
+
+        if not cont:
+            pass
+
         return self.fobj
     
 
@@ -128,13 +141,13 @@ class FA:
         if not firefly1.set_X(X):
             raise ValueError("Invalid position") # Should avoid this case
 
-    def optimize(self) -> Room:
+    def optimize(self, optimize_type = "open_dist") -> Room:
         """
         Optimizes the room layout using the Firefly Algorithm (FA).
         """
         # Evaluate the objective function for each firefly
         for firefly in self.fireflies:
-            firefly.evaluate()
+            firefly.evaluate(optimize_type)
         # Sort fireflies by objective function value
         self.fireflies.sort(key=lambda x: x.fobj, reverse=True)
         # Initialize the best solution
@@ -148,7 +161,7 @@ class FA:
                         # Move firefly1 towards firefly2
                         self.move_firefly(self.fireflies[i], self.fireflies[j])     
                         # Evaluate the objective function
-                        self.fireflies[i].evaluate()
+                        self.fireflies[i].evaluate(optimize_type)
             # Sort fireflies by objective function value
             self.fireflies.sort(key=lambda x: x.fobj, reverse=True)
             # Update the best solution
@@ -218,20 +231,21 @@ class FA:
 
 if __name__ == "__main__":
     # Example usage of the Firefly Algorithm (FA)
-    table1 = Object(10, 10, 5, 1, "Table") 
-    couch1 = Object(30, 10, 8, 2, "Couch")
-    desk1 = Object(20, 10, 5, 4, "Desk")
-    door1 = Object(10, 0, 8, 3, "Door", rotation=Rotation.UP, rotatable=False, moveable=False)
-    # ADD IN XY FOR DOOR
+    table1 = Object(10, 10, 5, "Table") 
+    couch1 = Object(30, 10, 8, "Couch")
+    desk1 = Object(20, 10, 5, "Desk")
+    door1 = Object(10, 0, 8, "Door", x=20, y=0, rotation=Rotation.UP, rotatable=False, moveable=False)
+    temp1 = Object(40, 10, 0, "Temp", x=0, y=80, rotation=Rotation.UP, rotatable=False, moveable=False)
+    temp2 = Object(40, 10, 0, "Temp", x=40, y=60, rotation=Rotation.LEFT, rotatable=False, moveable=False)
 
     width = 100
     height = 100
-    objects = [table1, couch1, door1,desk1,desk1,desk1]
-    N = 10  # Number of fireflies
+    objects = [table1, couch1, door1,desk1,desk1,desk1,desk1,desk1]#, temp1, temp2]
+    N = 100  # Number of fireflies
     T = 10  # Number of iterations
 
     FA = FA(objects, width, height, N, T)
-    room = FA.optimize()
+    room = FA.optimize("euclidean")
 
     print(room)
     print(f"Solution: {room.get_X()}")

@@ -5,6 +5,7 @@ from enum import IntEnum
 from sympy import nextprime
 from collections import Counter
 from functools import reduce
+from matplotlib import pyplot as plt
 
 class Rotation(IntEnum):
     """
@@ -35,10 +36,12 @@ class Object: # May want to change name to not confuse with object class (lower 
     common for all objects. Position of objects will always be referenced from the bottom 
     left corner of the object.
     """
-    def __init__(self, width: int, depth: int, reserved_space: int, name: str, id: int=-1, rotation: Rotation = Rotation.TBD, moveable: bool = True, rotatable: bool = True):
+    def __init__(self, width: int, depth: int, reserved_space: int, name: str, x: int=-1, y: int=-1, id: int=-1, rotation: Rotation = Rotation.TBD, moveable: bool = True, rotatable: bool = True):
         self.width = width
         self.depth = depth
         self.reserved_space = reserved_space
+        self.x = x
+        self.y = y
         self.id = id    #id for objects of the same shape
         self.rid = -1   #reference id for seperating objects of the same shape
         self.uid = -1   #unique id for the object, make a prime number
@@ -90,6 +93,17 @@ class Room:
         self.moveable_shapes = defaultdict(list) #list of objects with the same shape, key is the shape index
         #self.rid_list = list[int] #list of reference ids for objects of the same shape
 
+        self.euc_norm = 0 #euclidean norm of the room, used for the objective function
+        center = int(np.ceil(min(width, height)/2))
+        for i in range(center):
+            if width < 2 or height < 2:
+                self.euc_norm += center*width*height
+            else:
+                self.euc_norm += 2*(width + height - 2)*(i + 1)
+                width -= 2
+                height -= 2
+        
+
     def get_inventory(self) -> list[str]:
         """
         """
@@ -133,22 +147,22 @@ class Room:
                 
         depth = object.depth + object.reserved_space
         # Check direction of object, and if it fits in the room. Iterate through the space the object will take up.
-        if (rotation == Rotation.UP) and (x + object.width < self.width and y + depth < self.height):
+        if (rotation == Rotation.UP) and (x + object.width <= self.width and y + depth <= self.height):
             for i in range(object.width):
                 for j in range(depth):
                     if self.taken_space[x + i][y + j]:
                         return False
-        elif (rotation == Rotation.RIGHT) and (x + depth < self.width and y + object.width < self.height):
+        elif (rotation == Rotation.RIGHT) and (x + depth <= self.width and y + object.width <= self.height):
             for i in range(depth):
                 for j in range(object.width):
                     if self.taken_space[x + i][y + j]:
                         return False
-        elif (rotation == Rotation.DOWN) and (x + object.width < self.width and y + object.depth < self.height) and (y - object.reserved_space >= 0):
+        elif (rotation == Rotation.DOWN) and (x + object.width <= self.width and y + object.depth <= self.height) and (y - object.reserved_space >= 0):
             for i in range(object.width):
                 for j in range(-object.reserved_space, object.depth):
                     if self.taken_space[x + i][y + j]:
                         return False
-        elif (rotation == Rotation.LEFT) and (x + object.depth < self.width and y + object.width < self.height) and (x - object.reserved_space >= 0):
+        elif (rotation == Rotation.LEFT) and (x + object.depth <= self.width and y + object.width <= self.height) and (x - object.reserved_space >= 0):
             for i in range(-object.reserved_space, object.depth):
                 for j in range(object.width):
                     if self.taken_space[x + i][y + j]:
@@ -196,6 +210,8 @@ class Room:
             self.open_space[object.x : object.x + object.depth, object.y : object.y + object.width] = True
         else:
             raise AttributeError("UNKNOWN")
+        
+        pass
         
     def uid_map(self) -> np.ndarray:
         """
@@ -381,44 +397,66 @@ class Room:
         Check if the space is contiguous.
         :param space: boolean np.ndarray
         """
-        n_nodes = np.ceil(np.prod(space.shape)/2)
-        edges = np.zeros((n_nodes, n_nodes), dtype=bool)
-        # Create edges for the empty space
-        for i in range(0, space.shape[0], 2): # WOULD THIS WORK?
-            for j in range(0, space.shape[1], 2):
-                if i < space.shape[0] - 2: # Check if the next column is empty
-                    edges[i//2, j//2] = not(space[i, j] or space[i+1, j])
-                    if j < space.shape[1] - 2:
-                        edges[i//2, j//2] = not(space[i, j] or space[i, j+1])
-                        # NEED TO ADJUST ALL OF THIS WITH EDGE INDEXING
-                elif j < space.shape[1] - 2: # Last column, check if the next row is empty
-                    edges[i//2, j//2] = not(space[i, j] or space[i, j+1])
         
-        # Check if the graph is connected
-        visited = np.zeros(n_nodes, dtype=bool) # List of visited nodes
-        stack = [0] # Stack for DFS
-        while stack: # While stack is not empty
-            node = stack.pop()  # Pop the last node
-            if not visited[node]:   # If the node hasn't been visited
-                visited[node] = True
-                stack.extend([i for i in range(n_nodes) if edges[node, i]]) # Add the connected nodes to the stack
+        open_space_index = np.where(space == False)
+        open_space_index = list(zip(open_space_index[0], open_space_index[1]))
+        
+        index = 1
+        group = [open_space_index[0]]   # Start with the first open space
+        for target in group:
+            if index >= len(open_space_index):
+                break
 
-        return np.all(visited) # If all nodes have been visited, the graph is connected
+            found = False
+            directions = [(target[0] - 1, target[1]), (target[0] + 1, target[1]), (target[0], target[1] - 1), (target[0], target[1] + 1)]
+            for d in directions:
+                if d[0] < 0 or d[1] < 0 or d[0] >= self.width or d[1] >= self.height:
+                    directions.remove(d)
+
+            # Check if the next space is connected (speed up)
+            for d in directions:
+                if d == open_space_index[index] and d not in group:
+                    group.append(d)
+                    found = True
+                    index += 1
+                    break
+
+            if not found:   # If the next space is not connected, check the rest of the spaces (slow down)
+                for d in directions:
+                    if d in open_space_index and d not in group:
+                        group.append(d)
+                        found = True
+                        index += 1
+                        break
+                
+                if not found:
+                    return False
+        
+        raise NotImplementedError("Not implemented yet")
+        return len(group) == len(open_space_index)
 
     # Could implement the orignal optimization function
-    def evaluate(self) -> float:
+    def evaluate(self, optimize_type = "open_dist") -> float:
         """
         Evaluate the objective function.
         """
         # Get value of open space here!
         #fobj = 0.0
-        contour_map = np.zeros((self.width, self.height), dtype=int)
-        for i in range(self.width):
-            for j in range(self.height):
-                open_width = self._get_open_width(i,j)
-                open_height = self._get_open_height(i,j)
-                contour_map[i][j] = open_width*open_height
-        return np.sum(contour_map)/(np.prod(contour_map.shape)**2)
+        contour_map = np.zeros((self.width, self.height), dtype=float)
+        if optimize_type == "open_dist" or optimize_type == "open_distance":
+            for i in range(self.width):
+                for j in range(self.height):
+                    open_width = self._get_open_width(i,j)
+                    open_height = self._get_open_height(i,j)
+                    contour_map[i][j] = open_width*open_height
+            eval = np.sum(contour_map)/(np.prod(contour_map.shape)**2)
+        elif optimize_type == "euclidean_distance" or optimize_type == "euclidean" or optimize_type == "euclidean_dist":
+            for i in range(self.width):
+                for j in range(self.height):
+                    contour_map[i][j] = self._get_closest_object_distance(i,j)
+            eval = np.sum(contour_map)/self.euc_norm
+
+        return eval
 
     def _get_open_width(self, x, y) -> int:
         """
@@ -453,6 +491,33 @@ class Room:
             else:
                 break
         return height
+    
+    def _get_closest_object_distance(self, x, y) -> int:
+        """
+        Get the distance to the closest object from position x, y.
+        Wall is considered an object.
+        """
+        dist = min(x + 1, self.width - x, y + 1, self.height - y)             # Distance to travel to reach a wall
+        if dist == 1: # At the wall
+            return dist
+        
+        # Try to find object closer than the wall 
+        for i in range(int(dist)):
+            if i == 0 and self.taken_space[x][y]:
+                return i
+            elif self.taken_space[x + i][y] or self.taken_space[x - i][y] or self.taken_space[x][y + i] or self.taken_space[x][y - i]:
+                return i
+            else:
+                for j in range(1, i+1):
+                    if i == j:
+                        if self.taken_space[x + i][y + j] or self.taken_space[x - i][y + j] or self.taken_space[x + j][y - i] or self.taken_space[x - j][y - i]:
+                            return norm([i, j])
+                    else:
+                        if self.taken_space[x + i][y + j] or self.taken_space[x - i][y + j] or self.taken_space[x + j][y + i] or self.taken_space[x + j][y - i] \
+                        or self.taken_space[x + i][y - j] or self.taken_space[x - i][y - j] or self.taken_space[x - j][y + i] or self.taken_space[x - j][y - i]:
+                            return norm([i, j])
+        
+        return dist
 
 if __name__ == "__main__":
     # Test

@@ -29,3 +29,7 @@ To do:
         * Need to check if white space is contiguous
             * If not contiguous, create noise near disconnections
     * Check if evaluate is good. Replace if not
+        * Check what is wrong with euclidean distance. Some sharp edges remain on map
+            * Could be search distance to travel?
+    * Maybe add method to check if object is too big for room (with any rotation)
+        * or timeout
