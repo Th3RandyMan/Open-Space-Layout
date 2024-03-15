@@ -2,20 +2,25 @@ import numpy as np
 from Storage import Object, Room, Rotation
 from random import randint, random
 from matplotlib import pyplot as plt
+import signal
+
+
+def timeout_handler(signum, frame):
+    raise Exception("Timeout when creating random room layout.")
 
 class Firefly:
     """
     This class holds the attributes of a firefly in the Firefly Algorithm (FA).
     """
     fobj = None # Objective function value
-    def __init__(self, objects:list[Object], width:int, height:int, name:str="Room"):
+    def __init__(self, objects:list[Object], width:int, height:int, name:str="Room", timeout:int=10):
         """
         Initializes the firefly to hold a solution vector for the room layout.
         """
         self.room = Room(width, height, name)
-        self.generate_random_solution(objects)
+        self.generate_random_solution(objects, timeout)
 
-    def generate_random_solution(self, objects:list[Object]) -> None:
+    def generate_random_solution(self, objects:list[Object], timeout: int=10) -> None:
         """
         Generates a random solution vector for the room layout.
         """
@@ -27,6 +32,10 @@ class Firefly:
             obj.id = id # Set the id of the object by its index in the list
             objects.remove(obj)
         id_offset = len(unmovable)
+
+        # Create timeout for generating random room layout
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(timeout)  # Number of seconds before timeout
 
         # Add objects to the room in random positions
         for id, obj in enumerate(objects):
@@ -55,6 +64,9 @@ class Firefly:
                     raise ValueError("Invalid rotation value")
                 # Add object to the room if the position is valid
                 valid = self.room.add_object(obj, x, y, obj.rotation)
+
+        # Cancel the timeout
+        signal.alarm(0)
 
     def __str__(self) -> str:
         """
