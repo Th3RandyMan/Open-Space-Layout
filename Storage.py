@@ -322,12 +322,18 @@ class Room:
                 
                 if conf[0].size > 0:    # If there are conflicts, add to set
                     conflicts.append(np.transpose(conf))
-                    #uid_to_X[uid] = (i,j) # store the uid and its position in X
+
+
+
+
+
 
         # Resolve conflicts
                     # NOTES: IF OBJECT HASN'T MOVED, GIVE IT THE POSITION
                     # IF ALL OBJECTS HAVE MOVED, EITHER UNIFORM DISTRIBUTION OR GIVE WEIGHT TO CLOSER OBJECTS
-        
+            # IDEA: GIVE CORNERS OF OBJECT TO CALCULATE HOW IT'S OVERLAPPING
+        # IDEA: ADD OBJECTS BACK IN THE ROOM IF NO CONFLICTS OR IF HAVEN'T MOVED. CHECK IF CONTIGUOUS. UPDATE IF NOT. ADD IN CONFLICTING OBJECTS WITH NOISE
+
         for conf in conflicts:
             # THIS DOESNT WORK, NEED TO FIX
             uid_list = [self._factorize(num) for num in new_uid_space[conf[0],conf[1]]] # Get the uids fighting for the space
@@ -338,12 +344,31 @@ class Room:
                 x, y = abs(self.X[i][j][0] - X[i][j][0]), abs(self.X[i][j][1] - X[i][j][1]) # Get the distance between the old and new position
                 # Check if object hasn't moved. Give it the position if it hasn't moved
                 if x == 0 and y == 0:
-                    pass
+                    raise NotImplementedError("Need to resolve conflicts")
             #new_uid_space[conf] = 0
 
-        print(self._is_contiguous(new_open_space))
+        # Check if the new space is contiguous
+        labels, num_labels = label(new_open_space, connectivity=1, background=1, return_num=True)
+        if num_labels > 1:
+            raise NotImplementedError("Space is not contiguous and needs to be resolved.")
+            #return False # Change to fix the space
+        
 
-        return True # Change this
+
+
+
+
+
+        # Update to the new space
+        self.uid_space = new_uid_space
+        self.open_space = new_open_space
+        for uid in uid_to_X.keys():
+            i, j = uid_to_X[uid]
+            if self.X[i].shape[1] == 3:
+                self.objects[uid].set_position(X[i][j][0], X[i][j][1], X[i][j][2])
+            else:
+                self.objects[uid].set_position(X[i][j][0], X[i][j][1], self.objects[uid].rotation)
+        return True
 
 
     def _factorize(self, n: int) -> list[int]:
@@ -365,7 +390,7 @@ class Room:
         :param space: boolean np.ndarray
         :return: True if contiguous, False otherwise
         """
-        _,num = label(space, connectivity=1, background=1, return_num=True)
+        _, num = label(space, connectivity=1, background=1, return_num=True)
         return num == 1
 
 
