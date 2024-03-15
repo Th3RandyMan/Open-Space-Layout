@@ -252,7 +252,7 @@ if __name__ == "__main__":
     T = 10  # Number of iterations
 
     FA = FA(objects, width, height, N, T)
-    room = FA.optimize("euclidean")
+    room = FA.optimize("taxi_cab_dist")
 
     print(room)
     print(f"Solution: {room.get_X()}")
