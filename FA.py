@@ -79,20 +79,20 @@ class Firefly:
         Evaluates the objective function of the firefly.
         """
         self.fobj = self.room.evaluate(optimize_type)
-        cont = self.room._is_contiguous(self.room.open_space)
-        print(f"Firefly {self.room.name} - Objective Function: {self.fobj}")
-        print(cont)
-        plt.subplot(1, 2, 1)
-        plt.imshow(self.room.uid_map(), origin='lower')
-        plt.title("UID Space")
+        # cont = self.room._is_contiguous(self.room.open_space)
+        # print(f"Firefly {self.room.name} - Objective Function: {self.fobj}")
+        # print(cont)
+        # plt.subplot(1, 2, 1)
+        # plt.imshow(self.room.uid_map(), origin='lower')
+        # plt.title("UID Space")
 
-        plt.subplot(1, 2, 2)
-        plt.imshow(self.room.open_map(), origin='lower')
-        plt.title(f"Open Space {self.fobj}")
-        plt.show()
+        # plt.subplot(1, 2, 2)
+        # plt.imshow(self.room.open_map(), origin='lower')
+        # plt.title(f"Open Space {self.fobj}")
+        # plt.show()
 
-        if not cont:
-            pass
+        # if not cont:
+        #     pass
 
         return self.fobj
     
@@ -131,6 +131,13 @@ class FA:
         X1 = firefly1.get_X()
         X2 = firefly2.get_X()
         for xi1, xi2 in zip(X1, X2):
+            # Fix rotations if object is rotatable
+            if xi1.shape[1] == 3:
+                loc = np.intersect1d(np.where(xi1[:, 2] == 0), np.where(xi2[:, 2] == 3))
+                xi1[loc, 2] = 4
+                loc = np.intersect1d(np.where(xi1[:, 2] == 3), np.where(xi2[:, 2] == 0))
+                xi2[loc, 2] = 4
+                
             # Calculate the Euclidean distance
             r = np.sqrt((xi1 - xi2)**2)
             # Calculate the attractiveness

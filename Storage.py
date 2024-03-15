@@ -44,7 +44,6 @@ class Object: # May want to change name to not confuse with object class (lower 
         self.x = x
         self.y = y
         self.id = id    #id for objects of the same shape
-        self.rid = -1   #reference id for seperating objects of the same shape
         self.uid = -1   #unique id for the object, make a prime number
         self.name = name    #maybe remove? change to seperate objects?
         self.rotation = rotation
@@ -53,7 +52,7 @@ class Object: # May want to change name to not confuse with object class (lower 
 
     def __str__(self):
         return f"{self.name} | Width: {self.width}, Depth: {self.depth}, Reserved Space: {self.reserved_space}, Rotation: {self.rotation}\n" \
-                f"\tID: {self.id}, RID: {self.rid}, UID: {self.uid}"
+                f"\tID: {self.id}, UID: {self.uid}"
     
     def shape_index(self):
         return f"{self.width}_{self.depth}_{self.reserved_space}_{self.rotatable}"
@@ -84,15 +83,12 @@ class Room:
         self.height = height
         self.name = name
         self.current_uid = 1 # must be prime numbers
-        #self.current_rid = 0 # reference id for objects of the same shape
 
-        # Maybe change to all one array?
         self.uid_space = np.ones((width, height), dtype=int)   #unique id space for moving objects around
         self.taken_space = np.zeros((width, height), dtype=bool)#space taken by objects, including reserved space
         self.open_space = np.zeros((width, height), dtype=bool) #space that is not taken by objects, not including reserved space
         self.objects = defaultdict(Object) #objects in the room, key is the object uid
         self.moveable_shapes = defaultdict(list) #list of objects with the same shape, key is the shape index
-        #self.rid_list = list[int] #list of reference ids for objects of the same shape
 
         self.euc_norm = 0 #euclidean norm of the room, used for the objective function
         center = int(np.ceil(min(width, height)/2))
@@ -111,6 +107,7 @@ class Room:
         obj_list = [self.objects[uid].name for uid in self.objects.keys()]
         duplicates = Counter(obj_list)
         return [f"{k}: {v}" for k, v in duplicates.items()]
+
 
     def __str__(self):
         return f"Room | Width: {self.width}, Height: {self.height}, Number of Objects: {len(self.objects)}\n" \
@@ -168,16 +165,6 @@ class Room:
                 for j in range(object.width):
                     if self.taken_space[x + i][y + j]:
                         return False
-        # elif (rotation == Rotation.DOWN) and (x + object.width < self.width and y + depth < self.height):
-        #     for i in range(object.width):
-        #         for j in range(depth):
-        #             if self.taken_space[x + i][y + j]:
-        #                 return False
-        # elif (rotation == Rotation.LEFT) and (x + depth < self.width and y + object.width < self.height):
-        #     for i in range(depth):
-        #         for j in range(object.width):
-        #             if self.taken_space[x + i][y + j]:
-        #                 return False
         else:
             return False    # Doesn't fit in the room
         
@@ -212,7 +199,6 @@ class Room:
         else:
             raise AttributeError("UNKNOWN")
         
-        pass
         
     def uid_map(self) -> np.ndarray:
         """
@@ -220,12 +206,14 @@ class Room:
         """
         return self.uid_space.transpose()
     
+
     def open_map(self) -> np.ndarray:
         """
         Returns the open space.
         """
         return self.open_space.transpose()
     
+
     def get_X(self) -> list[np.ndarray]:
         """
         Get solution space X.
@@ -257,35 +245,15 @@ class Room:
         self.X = X
         return X
     
-    # def set_X(self, X: list[np.ndarray]):
-    #     """
-    #     Set solution space X.
-    #     """
-    #     X_round = [np.round(xi) for xi in X]
-    #     valid, new_uid_space = self.check_space(X_round)
-        # np.ones((self.width, self.height), dtype=int)#self.uid_space
-        # for i, key in enumerate(self.moveable_shapes.keys()):
-        #     for j, uid in enumerate(self.moveable_shapes[key]):
-        #         obj = self.objects[uid]
-        #         X_round[i][j] # x, y, rotation adjustments
-
-
-        # for i, key in enumerate(self.moveable_shapes.keys()):
-        #     for j, uid in enumerate(self.moveable_shapes[key]):
-        #         obj = self.objects[uid]
-        #         obj.x = X[i][j][0]
-        #         obj.y = X[i][j][1]
-        #         if X[i].shape[1] == 3:
-        #             obj.rotation = X[i][j][2]
     
     def set_X(self, X_float: list[np.ndarray]) -> bool:
         """
         Check for collisions in the new space.
         """
-        X = [np.round(xi) for xi in X_float]
+        X = [np.round(xi).astype(int) for xi in X_float]
         new_uid_space = np.ones((self.width, self.height), dtype=int) # May need to change the dtype to something larger
         new_open_space = np.zeros((self.width, self.height), dtype=bool)
-        conflicts = set()
+        conflicts = []
         uid_to_X = defaultdict(tuple)
 
         # Create new uid space and check for conflicts
@@ -295,13 +263,7 @@ class Room:
                 uid_to_X[uid] = (i,j)
                 x, y = X[i][j][0] + obj.x, X[i][j][1] + obj.y
                 # If rotatable, update rotation
-                if(X[i].shape[1] == 3):
-                    # Check if rotating toward zero
-                    rotation
-                    rotation = (rotation + obj.rotation)%4
-                else:
-                    rotation = obj.rotation
-                #rotation = (X[i][j][2] + obj.rotation)%4 if X[i].shape[1] == 3 else obj.rotation
+                rotation = X[i][j][2] % 4 if (X[i].shape[1] == 3) else obj.rotation
 
                 if rotation == Rotation.UP:
                     if x < 0:
@@ -316,7 +278,7 @@ class Room:
                     new_open_space[x : x + obj.width, y : y + obj.depth] = True
                     conf = np.where(new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] > obj.uid)
 
-                elif obj.rotation == Rotation.RIGHT:
+                elif rotation == Rotation.RIGHT:
                     if x < 0:
                         x = 0
                     elif x + obj.depth + obj.reserved_space > self.width:
@@ -329,7 +291,7 @@ class Room:
                     new_open_space[x : x + obj.depth, y : y + obj.width] = True
                     conf = np.where(new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] > obj.uid)                 
 
-                elif obj.rotation == Rotation.DOWN:
+                elif rotation == Rotation.DOWN:
                     if x < 0:
                         x = 0
                     elif x + obj.width > self.width:
@@ -342,7 +304,7 @@ class Room:
                     new_open_space[x : x + obj.width, y : y + obj.depth] = True
                     conf = np.where(new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] > obj.uid)
 
-                elif obj.rotation == Rotation.LEFT:
+                elif rotation == Rotation.LEFT:
                     if x < - obj.reserved_space:
                         x = -obj.reserved_space
                     elif x + obj.depth > self.width:
@@ -359,19 +321,21 @@ class Room:
                     raise AttributeError("UNKNOWN")
                 
                 if conf[0].size > 0:    # If there are conflicts, add to set
-                    conflicts.append(conf)
+                    conflicts.append(np.transpose(conf))
                     #uid_to_X[uid] = (i,j) # store the uid and its position in X
 
         # Resolve conflicts
                     # NOTES: IF OBJECT HASN'T MOVED, GIVE IT THE POSITION
                     # IF ALL OBJECTS HAVE MOVED, EITHER UNIFORM DISTRIBUTION OR GIVE WEIGHT TO CLOSER OBJECTS
+        
         for conf in conflicts:
-            uid_list = [self._factorize(num) for num in new_uid_space[conf]] # Get the uids fighting for the space
+            # THIS DOESNT WORK, NEED TO FIX
+            uid_list = [self._factorize(num) for num in new_uid_space[conf[0],conf[1]]] # Get the uids fighting for the space
             #probability = []
             #prob = 1/len(uid_list)
             for uid in uid_list:
                 i, j = uid_to_X[uid]
-                x, y = X[i][j][0], X[i][j][1]
+                x, y = abs(self.X[i][j][0] - X[i][j][0]), abs(self.X[i][j][1] - X[i][j][1]) # Get the distance between the old and new position
                 # Check if object hasn't moved. Give it the position if it hasn't moved
                 if x == 0 and y == 0:
                     pass
@@ -380,6 +344,7 @@ class Room:
         print(self._is_contiguous(new_open_space))
 
         return True # Change this
+
 
     def _factorize(self, n: int) -> list[int]:
         """
@@ -393,6 +358,7 @@ class Room:
         factors = set(reduce(list.__add__,([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))
         return factors.pop()
     
+
     def _is_contiguous(self, space: np.ndarray) -> bool:
         """
         Check if the space is contiguous.
@@ -402,28 +368,40 @@ class Room:
         _,num = label(space, connectivity=1, background=1, return_num=True)
         return num == 1
 
-    # Could implement the orignal optimization function
+
     def evaluate(self, optimize_type = "open_dist") -> float:
         """
         Evaluate the objective function.
         """
         # Get value of open space here!
         #fobj = 0.0
-        contour_map = np.zeros((self.width, self.height), dtype=float)
         if optimize_type == "open_dist" or optimize_type == "open_distance":
+            contour_map = np.zeros((self.width, self.height), dtype=float)
             for i in range(self.width):
                 for j in range(self.height):
                     open_width = self._get_open_width(i,j)
                     open_height = self._get_open_height(i,j)
                     contour_map[i][j] = open_width*open_height
             eval = np.sum(contour_map)/(np.prod(contour_map.shape)**2)
-        elif optimize_type == "euclidean_distance" or optimize_type == "euclidean" or optimize_type == "euclidean_dist":
-            for i in range(self.width):
-                for j in range(self.height):
-                    contour_map[i][j] = self._get_closest_object_distance(i,j)
+
+        elif optimize_type == "taxi_cab_distance" or optimize_type == "taxi_cab_dist":
+            contour_map = (~self.open_space).astype(float)
+            contour_map[1:self.width-1,1:self.height-1] *= self.height # Could be height or width, just large value
+            nodes = np.transpose(np.where(contour_map == 0))
+            largest = 1
+            
+            while(len(nodes) > 0):
+                for node in nodes:
+                    for neighbor in [(node[0]+1, node[1]), (node[0]-1, node[1]), (node[0], node[1]+1), (node[0], node[1]-1)]: # Check neighbors
+                        if 0 <= neighbor[0] < self.width and 0 <= neighbor[1] < self.height and contour_map[neighbor] > contour_map[node[0], node[1]]:
+                            contour_map[neighbor] = largest
+                nodes = np.transpose(np.where(contour_map == largest))
+                largest += 1
+                
             eval = np.sum(contour_map)/self.euc_norm
 
         return eval
+
 
     def _get_open_width(self, x, y) -> int:
         """
@@ -442,6 +420,7 @@ class Room:
                 break
         return width
     
+    
     def _get_open_height(self, x, y) -> int:
         """
         Get the height of the open space at position x, y.
@@ -459,32 +438,9 @@ class Room:
                 break
         return height
     
-    def _get_closest_object_distance(self, x, y) -> int:
-        """
-        Get the distance to the closest object from position x, y.
-        Wall is considered an object.
-        """
-        dist = min(x + 1, self.width - x, y + 1, self.height - y)             # Distance to travel to reach a wall
-        if dist == 1: # At the wall
-            return dist
-        
-        # Try to find object closer than the wall 
-        for i in range(int(dist)):
-            if i == 0 and self.taken_space[x][y]:
-                return i
-            elif self.taken_space[x + i][y] or self.taken_space[x - i][y] or self.taken_space[x][y + i] or self.taken_space[x][y - i]:
-                return i
-            else:
-                for j in range(1, i+1):
-                    if i == j:
-                        if self.taken_space[x + i][y + j] or self.taken_space[x - i][y + j] or self.taken_space[x + j][y - i] or self.taken_space[x - j][y - i]:
-                            return norm([i, j])
-                    else:
-                        if self.taken_space[x + i][y + j] or self.taken_space[x - i][y + j] or self.taken_space[x + j][y + i] or self.taken_space[x + j][y - i] \
-                        or self.taken_space[x + i][y - j] or self.taken_space[x - i][y - j] or self.taken_space[x - j][y + i] or self.taken_space[x - j][y - i]:
-                            return norm([i, j])
-        
-        return dist
+
+
+
 
 if __name__ == "__main__":
     # Test
