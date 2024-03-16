@@ -2,11 +2,11 @@ import numpy as np
 from Storage import Object, Room, Rotation
 from random import randint, random
 from matplotlib import pyplot as plt
-import signal
+#import signal
 
 
-def timeout_handler(signum, frame):
-    raise Exception("Timeout when creating random room layout.")
+# def timeout_handler(signum, frame):
+#     raise Exception("Timeout when creating random room layout.")
 
 class Firefly:
     """
@@ -30,15 +30,17 @@ class Firefly:
             if not self.room.add_object(obj, obj.x, obj.y, obj.rotation):
                 raise ValueError("Invalid position")
             obj.id = id # Set the id of the object by its index in the list
-            objects.remove(obj)
         id_offset = len(unmovable)
 
         # Create timeout for generating random room layout
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(timeout)  # Number of seconds before timeout
+        # signal.signal(signal.SIGINT, timeout_handler)
+        # signal.alarm(timeout)  # Number of seconds before timeout
 
         # Add objects to the room in random positions
         for id, obj in enumerate(objects):
+            if not obj.moveable:
+                continue
+            
             obj.id = id + id_offset # Set the id of the object by its index in the list
             valid = False
             # Try to add the object to the room until a valid position is found
@@ -66,7 +68,7 @@ class Firefly:
                 valid = self.room.add_object(obj, x, y, obj.rotation)
 
         # Cancel the timeout
-        signal.alarm(0)
+        #signal.alarm(0)
 
     def __str__(self) -> str:
         """
@@ -80,11 +82,11 @@ class Firefly:
         """
         return self.room.get_X()
     
-    def set_X(self, X:list[np.ndarray]) -> None:
+    def set_X(self, X:list[np.ndarray]) -> bool:
         """
         Sets the solution vector of the firefly.
         """
-        self.room.set_X(X)
+        return self.room.set_X(X)
 
     def evaluate(self, optimize_type) -> float:
         """
@@ -114,7 +116,7 @@ class FA:
     This class implements the Firefly Algorithm (FA) for optimization.
     """
 
-    def __init__(self, objects:list[Object], width:int, height:int, N:int, T:int, alpha:float=0.2, beta0:float=1.0, gamma:float=1.0, name:str="Room"):
+    def __init__(self, objects:list[Object], width:int, height:int, N:int, T:int, alpha:tuple[float,float]=(2,0.2), beta0:tuple[float,float]=(5,0.5), gamma:float=0.01, name:str="Room"):
         """
         Initializes the Firefly Algorithm (FA) with the following parameters:
         :param objects: List of objects to be placed in the room
@@ -153,11 +155,19 @@ class FA:
             # Calculate the Euclidean distance
             r = np.sqrt((xi1 - xi2)**2)
             # Calculate the attractiveness
-            beta = self.beta0 * np.exp(-self.gamma * r**2) 
+            beta = self.beta0[0] * np.exp(-self.gamma * r**2) 
             # Update the position of firefly1
-            xi = xi1 + beta * (xi2 - xi1) + self.alpha * (random() - 0.5)
+            noise = np.random.randn(*xi2.shape)
+            noise[:, 0:2] = self.alpha[0] * noise[:, 0:2]    # Maybe adjust parameter to be different for rotation
+            
+            if xi1.shape[1] == 3: # If rotatable
+                beta[:,2] = self.beta0[1] * np.exp(-self.gamma * r[:,2]**2) 
+                noise[:, 2] = self.alpha[1] * noise[:, 2]
+
+            xi = xi1 + beta * (xi2 - xi1) + noise   
             X.append(xi)
-        if not firefly1.set_X(X):
+        valid = firefly1.set_X(X)
+        if not valid:
             raise ValueError("Invalid position") # Should avoid this case
 
     def optimize(self, optimize_type = "open_dist") -> Room:
@@ -252,15 +262,15 @@ if __name__ == "__main__":
     # Example usage of the Firefly Algorithm (FA)
     table1 = Object(10, 10, 5, "Table") 
     couch1 = Object(30, 10, 8, "Couch")
-    desk1 = Object(20, 10, 5, "Desk")
+    desks = [Object(20, 10, 5, "Desk") for i in range(5)]
     door1 = Object(10, 0, 8, "Door", x=20, y=0, rotation=Rotation.UP, rotatable=False, moveable=False)
     temp1 = Object(40, 10, 0, "Temp", x=0, y=80, rotation=Rotation.UP, rotatable=False, moveable=False)
     temp2 = Object(40, 10, 0, "Temp", x=40, y=60, rotation=Rotation.LEFT, rotatable=False, moveable=False)
 
     width = 100
     height = 100
-    objects = [table1, couch1, door1,desk1,desk1,desk1,desk1,desk1]#, temp1, temp2]
-    N = 100  # Number of fireflies
+    objects = [table1, couch1, door1] + desks#, temp1, temp2]
+    N = 10  # Number of fireflies
     T = 10  # Number of iterations
 
     FA = FA(objects, width, height, N, T)
@@ -269,7 +279,6 @@ if __name__ == "__main__":
     print(room)
     print(f"Solution: {room.get_X()}")
 
-    from matplotlib import pyplot as plt
     plt.subplot(1, 2, 1)
     plt.imshow(room.uid_map(), origin='lower')
     plt.title("UID Space")
