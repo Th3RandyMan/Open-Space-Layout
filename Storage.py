@@ -40,6 +40,18 @@ class Object: # May want to change name to not confuse with object class (lower 
     left corner of the object.
     """
     def __init__(self, width: int, depth: int, reserved_space: int, name: str, x: int=-1, y: int=-1, id: int=-1, rotation: Rotation = Rotation.TBD, moveable: bool = True, rotatable: bool = True):
+        """
+        :param width: Width of the object.
+        :param depth: Depth of the object.
+        :param reserved_space: Space reserved for the object. This is the space above the object when the object is facing up.
+        :param name: Name of the object.
+        :param x: x position of the object. Default is -1.
+        :param y: y position of the object. Default is -1.
+        :param id: Id of the object. Default is -1.
+        :param rotation: Rotation of the object. Default is TBD.
+        :param moveable: If the object is moveable. Default is True.
+        :param rotatable: If the object is rotatable. Default is True.
+        """
         self.width = width
         self.depth = depth
         self.reserved_space = reserved_space
@@ -57,30 +69,38 @@ class Object: # May want to change name to not confuse with object class (lower 
                 f"\tID: {self.id}, UID: {self.uid}"
     
     def shape_index(self):
+        """
+        Returns the shape index of the object for the moveable_shapes dictionary.
+        """
         return f"{self.width}_{self.depth}_{self.reserved_space}_{self.rotatable}"
 
-    def set_position(self, x, y, rotation):
+    def set_position(self, x: int, y: int, rotation: Rotation):
+        """
+        Set the position of the object.
+        :param x: x position of the object.
+        :param y: y position of the object.
+        :param rotation: Rotation of the object.
+        """
         self.x = x
         self.y = y
         self.rotation = rotation
     
-    def move(self, x, y, rotation):
-        if(self.moveable):
-            self.x += x
-            self.y += y
-            self.rotation = rotation
-        else:
-            raise AttributeError("Object is not moveable")
 
 
 class Room:
     """
-    
+    Class for the room. The room will have a width, height, name and a list of objects.
+    Objects will be placed in the room and the space taken by the objects will be updated.
     """
     fobj = None # objective function
     X = [] # location in solution space
 
-    def __init__(self, width, height, name):
+    def __init__(self, width: int, height: int, name: str = "Room"):
+        """
+        :param width: Width of the room.
+        :param height: Height of the room.
+        :param name: Name of the room.
+        """
         self.width = width
         self.height = height
         self.name = name
@@ -107,6 +127,8 @@ class Room:
 
     def get_inventory(self) -> list[str]:
         """
+        Returns the inventory of objects in the room.
+        :return: List of objects in the room.
         """
         obj_list = [self.objects[uid].name for uid in self.objects.keys()]
         duplicates = Counter(obj_list)
@@ -114,7 +136,7 @@ class Room:
 
 
     def __str__(self):
-        return f"Room | Width: {self.width}, Height: {self.height}, Number of Objects: {len(self.objects)}\n" \
+        return f"Room | Width: {self.width}, Height: {self.height}, Number of Objects: {len(self.objects)} Contiguous: {self.contiguous}\n" \
                 f"Objects: {self.get_inventory()}"
 
 
@@ -128,7 +150,12 @@ class Room:
 
     def add_object(self, object: Object, x: int, y: int, rotation: Rotation) -> bool:
         """
-        Adds object to the room.
+        Adds object to the room. If the object fits in the room, it will be added to the space.
+        :param object: Object to add to the room.
+        :param x: x position of the object.
+        :param y: y position of the object.
+        :param rotation: Rotation of the object.
+        :return: True if object is added, False otherwise.
         """
         if self._fits(object, x, y, rotation):
             obj = Object(object.width, object.depth, object.reserved_space, object.name, x, y, object.id, rotation, object.moveable, object.rotatable)
@@ -143,6 +170,11 @@ class Room:
     def _fits(self, object: Object, x: int, y: int, rotation: Rotation) -> bool:
         """
         Checks if object fits in the room at position x, y with rotation.
+        :param object: Object to check for fit.
+        :param x: x position of the object.
+        :param y: y position of the object.
+        :param rotation: Rotation of the object.
+        :return: True if object fits, False otherwise.
         """
         if(rotation == Rotation.TBD):
             return False
@@ -180,6 +212,7 @@ class Room:
     def _add_object_to_space(self, object: Object) -> None:
         """
         Updates the space taken by the object in the room.
+        :param object: Object to add to the space.
         """
         self.n_objects += 1
         object.uid = self.next_uid()
@@ -209,14 +242,14 @@ class Room:
         
     def uid_map(self) -> np.ndarray:
         """
-        Returns the uid space.
+        Returns the uid space for a plot.
         """
         return self.uid_space.transpose()
     
 
     def open_map(self) -> np.ndarray:
         """
-        Returns the open space.
+        Returns the open space for a plot.
         """
         return self.open_space.transpose()
     
@@ -224,6 +257,7 @@ class Room:
     def get_X(self) -> list[np.ndarray]:
         """
         Get solution space X.
+        :return: Solution vector X.
         """
         X = []
 
@@ -256,6 +290,8 @@ class Room:
     def set_X(self, X_float: list[np.ndarray]) -> bool:
         """
         Check for collisions in the new space.
+        :param X_float: Solution vector holding new locations of objects
+        :return: True if no collisions, False otherwise. Currently, always returns True.
         """
         X = [np.round(xi).astype(int) for xi in X_float]
         new_uid_space = np.ones((self.width, self.height), dtype=int) # May need to change the dtype to something larger
@@ -291,10 +327,10 @@ class Room:
         # Add in moveable objects to the new space
         for i, key in enumerate(self.moveable_shapes.keys()):
             for j, uid in enumerate(self.moveable_shapes[key]):
-                print(uid)
                 obj = self.objects[uid]
                 uid_to_X[uid] = (i,j)
                 x, y = X[i][j][0], X[i][j][1]
+
                 # If rotatable, update rotation
                 if X[i][j].shape[0] == 3:
                     rotation = X[i][j][2] % 4
@@ -302,7 +338,9 @@ class Room:
                 else:
                     rotation = obj.rotation
 
+
                 if rotation == Rotation.UP:
+                    # Check for out of bounds
                     if x < 0:
                         x = 0
                         X[i][j][0] = 0
@@ -315,15 +353,17 @@ class Room:
                     elif y + obj.depth + obj.reserved_space > self.height:
                         y = self.height - obj.depth - obj.reserved_space
                         X[i][j][1] = self.height - obj.depth - obj.reserved_space
-                    
+                    # Check for conflicts
                     conf = np.where(new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] > 1) # Check for conflicts
                     if conf[0].size > 0:
                         uids = np.unique(new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space][conf])
                         conflicts.append(np.concatenate(([uid],uids)))
+                    # Add object to the space
                     new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] *= obj.uid
                     new_open_space[x : x + obj.width, y : y + obj.depth] = True
 
                 elif rotation == Rotation.RIGHT:
+                    # Check for out of bounds
                     if x < 0:
                         x = 0
                         X[i][j][0] = 0
@@ -336,38 +376,42 @@ class Room:
                     elif y + obj.width > self.height:
                         y = self.height - obj.width
                         X[i][j][1] = self.height - obj.width
-                    
+                    # Check for conflicts
                     conf = np.where(new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] > 1) # Check for conflicts
                     if conf[0].size > 0:
                         uids = np.unique(new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width][conf])
                         conflicts.append(np.concatenate(([uid],uids)))
+                    # Add object to the space
                     new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] *= obj.uid
                     new_open_space[x : x + obj.depth, y : y + obj.width] = True
 
                 elif rotation == Rotation.DOWN:
+                    # Check for out of bounds
                     if x < 0:
                         x = 0
                         X[i][j][0] = 0
                     elif x + obj.width > self.width:
                         x = self.width - obj.width
                         X[i][j][0] = self.width - obj.width
-                    if y < - obj.reserved_space:
-                        y = -obj.reserved_space
-                        X[i][j][1] = -obj.reserved_space
+                    if y < obj.reserved_space:
+                        y = obj.reserved_space
+                        X[i][j][1] = obj.reserved_space
                     elif y + obj.depth > self.height:
                         y = self.height - obj.depth
                         X[i][j][1] = self.height - obj.depth
-
+                    # Check for conflicts
                     conf = np.where(new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] > 1) # Check for conflicts
                     if conf[0].size > 0:
                         uids = np.unique(new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth][conf])
                         conflicts.append(np.concatenate(([uid],uids)))
+                    # Add object to the space
                     new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] *= obj.uid
                     new_open_space[x : x + obj.width, y : y + obj.depth] = True
 
                 elif rotation == Rotation.LEFT:
-                    if x < - obj.reserved_space:
-                        x = -obj.reserved_space
+                    # Check for out of bounds
+                    if x < obj.reserved_space:
+                        x = obj.reserved_space
                         X[i][j][0] = -obj.reserved_space
                     elif x + obj.depth > self.width:
                         x = self.width - obj.depth
@@ -378,34 +422,18 @@ class Room:
                     elif y + obj.width > self.height:
                         y = self.height - obj.width
                         X[i][j][1] = self.height - obj.width
-
+                    # Check for conflicts
                     conf = np.where(new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] > 1) # Check for conflicts
                     if conf[0].size > 0:
                         uids = np.unique(new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width][conf])
                         conflicts.append(np.concatenate(([uid],uids)))
+                    # Add object to the space
                     new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] *= obj.uid
                     new_open_space[x : x + obj.depth, y : y + obj.width] = True
 
                 else:
                     raise AttributeError("UNKNOWN")
-                        
-        confs = list(np.unique([u for conflict in conflicts for u in conflict])) # REMOVE THIS
-        present_uids = [uid for uid in np.unique(new_uid_space) if uid in self.objects.keys()]
-        missing_uids = [uid for uid in self.objects.keys() if uid not in present_uids]
-        print("On map:", np.unique(new_uid_space))
-
-        if len(missing_uids) > 0: # Check for missing objects
-            print("Present UIDs: ", present_uids)
-            print("Missing UIDs: ", missing_uids)
-            for uid in missing_uids:
-                i,j = uid_to_X[uid]
-                print(X[i][j])
-            raise AttributeError("MISSING OBJECTS")
-
-
-
-
-
+ 
 
         if len(conflicts) > 0:
             # Update conflict list
@@ -414,24 +442,18 @@ class Room:
             unmoved = []
             # Remove conflicts from the space
             for uid in conflicts:
-                print("\tUID: ", uid)
                 if uid_to_X[uid] == (): # Filter out objects that cannot move
-                    #conflicts.remove(uid)
                     unmoved.append(uid) 
-                    print("\t\tRemoved since not moveable")
                     continue
                 
                 i,j = uid_to_X[uid]
                 if(X[i][j] == self.X[i][j]).all():  # If the object hasn't moved, give it the position
-                    #conflicts.remove(uid)
                     unmoved.append(uid) 
-                    print("\t\tRemoved since not moved, but can move.")
                 else: # If the object has moved, remove from space
-                    print("\t\tAdjusted position.")
-                    i, j = uid_to_X[uid]
                     x, y = X[i][j][0], X[i][j][1]
                     obj = self.objects[uid]
                     rotation = X[i][j][2] if X[i][j].shape[0] == 3 else obj.rotation
+                    # Get position of the object and remove from space
                     if rotation == Rotation.UP:
                         x0 , xf, y0, yf = x, x + obj.width, y, y + obj.depth + obj.reserved_space
                         new_open_space[x : x + obj.width, y : y + obj.depth] = False
@@ -450,9 +472,6 @@ class Room:
                     new_uid_space[x0 : xf, y0 : yf] = (new_uid_space[x0 : xf, y0 : yf]/uid).astype(int)
 
 
-
-
-
             # Add objects that haven't moved back into the open space
             for uid in unmoved:
                 conflicts.remove(uid)
@@ -468,96 +487,9 @@ class Room:
                 else:
                     raise AttributeError("UNKNOWN")
                 
-            if len(np.unique(new_uid_space)) != len(self.objects) + 1 - len(conflicts): # Check for missing objects
-                raise AttributeError("MISSING OBJECTS")
-
-
             # Resolve conflicts with noise separation
-            sigma = 1 # Noise parameter that will grow with iterations
-            while len(conflicts) > 0:
-                if len(np.unique(new_uid_space)) != len(self.objects) + 1 - len(conflicts):
-                    raise AttributeError("MISSING OBJECTS")
+            self._noise_separation(X, new_uid_space, new_open_space, uid_to_X, conflicts)
 
-                resolve_space = np.copy(new_uid_space)
-                resolve_locations = defaultdict(tuple)
-                confs = []
-                for uid in conflicts:
-                    if uid_to_X[uid] == (): # If object cannot move, skip
-                        continue
-
-                    i, j = uid_to_X[uid]
-                    # Add noise to the position
-                    x, y = int(X[i][j][0] + sigma*np.random.randn(1)[0]), int(X[i][j][1] + sigma*np.random.randn(1)[0])
-                    if x < 0:
-                        x = 0
-                    elif x + obj.width > self.width:
-                        x = self.width - obj.width
-                    if y < 0:
-                        y = 0
-                    elif y + obj.depth + obj.reserved_space > self.height:
-                        y = self.height - obj.depth - obj.reserved_space
-                    resolve_locations[uid] = (x, y)
-
-                    obj = self.objects[uid]
-                    rotation = X[i][j][2] if X[i][j].shape[0] == 3 else obj.rotation
-                    # Update the space with the new position
-                    if rotation == Rotation.UP:
-                        conf = np.where(resolve_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] > 1)
-                        if conf[0].size > 0:
-                            uids = np.unique(resolve_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space][conf])
-                            confs.append(np.concatenate(([uid],uids)))
-                        resolve_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] *= obj.uid
-                    elif rotation == Rotation.RIGHT:
-                        conf = np.where(resolve_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] > 1)
-                        if conf[0].size > 0:
-                            uids = np.unique(resolve_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width][conf])
-                            confs.append(np.concatenate(([uid],uids)))
-                        resolve_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] *= obj.uid
-                    elif rotation == Rotation.DOWN:
-                        conf = np.where(resolve_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] > 1)
-                        if conf[0].size > 0:
-                            uids = np.unique(resolve_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth][conf])
-                            confs.append(np.concatenate(([uid],uids)))
-                        resolve_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] *= obj.uid
-                    elif rotation == Rotation.LEFT:
-                        conf = np.where(resolve_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] > 1)
-                        if conf[0].size > 0:
-                            uids = np.unique(resolve_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width][conf])
-                            confs.append(np.concatenate(([uid],uids)))
-                        resolve_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] *= obj.uid
-                    else:
-                        raise AttributeError("UNKNOWN")
-                
-                # Get new conflict list
-                new_conflicts = list(np.unique([u for conflict in confs for u in conflict]))
-                new_conflicts = [uid for uid in new_conflicts if uid in uid_to_X.keys()] # Remove uids that are not in the solution space
-                # Update conflicts with intersection of old and new conflicts to get unresolved conflicts
-                new_conflicts = set(conflicts).intersection(set(new_conflicts))
-                # Add resolved locations to the space
-                resolved_conflicts = set(conflicts).difference(new_conflicts)
-                for uid in resolved_conflicts:
-                    x, y = resolve_locations[uid]
-                    i, j = uid_to_X[uid]
-                    X[i][j][0], X[i][j][1] = x, y
-                    obj = self.objects[uid]
-                    rotation = X[i][j][2] if X[i][j].shape[0] == 3 else obj.rotation
-                    if rotation == Rotation.UP:
-                        new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] = obj.uid
-                        new_open_space[x : x + obj.width, y : y + obj.depth] = True
-                    elif rotation == Rotation.RIGHT:
-                        new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] = obj.uid
-                        new_open_space[x : x + obj.depth, y : y + obj.width] = True
-                    elif rotation == Rotation.DOWN:
-                        new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] = obj.uid
-                        new_open_space[x : x + obj.width, y : y + obj.depth] = True
-                    elif rotation == Rotation.LEFT:
-                        new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] = obj.uid
-                        new_open_space[x : x + obj.depth, y : y + obj.width] = True
-                    else:
-                        raise AttributeError("UNKNOWN")
-
-                conflicts = list(new_conflicts)
-                sigma += 1 # Increase noise parameter
 
         if False: # Ignore this for now
             # Check if the new space is contiguous
@@ -586,6 +518,134 @@ class Room:
         return True
 
 
+    def _noise_separation(self, X: list[np.ndarray], new_uid_space: np.ndarray, new_open_space: np.ndarray, uid_to_X: dict, conflicts: list[int]) -> None:
+        """
+        Resolve conflicts with noise separation. This will incrimentally 
+        add noise to the position of the objects until conflicts are resolved.
+        :param X: Solution vector holding new locations of objects
+        :param new_uid_space: 
+        """
+        sigma = 1 # Noise parameter that will grow with iterations
+
+        # Resolve conflicts with noise separation
+        while len(conflicts) > 0:
+            resolve_space = np.copy(new_uid_space)
+            resolve_locations = defaultdict(tuple)
+            confs = []
+            for uid in conflicts:
+                if uid_to_X[uid] == (): # If object cannot move, skip
+                    continue
+
+                i, j = uid_to_X[uid]
+                # Add noise to the position
+                x, y = int(X[i][j][0] + sigma*np.random.randn(1)[0]), int(X[i][j][1] + sigma*np.random.randn(1)[0])
+
+                obj = self.objects[uid]
+                rotation = X[i][j][2] if X[i][j].shape[0] == 3 else obj.rotation
+                # Update the space with the new position
+                if rotation == Rotation.UP:
+                    if x < 0:
+                        x = 0
+                    elif x + obj.width > self.width:
+                        x = self.width - obj.width
+                    if y < 0:
+                        y = 0
+                    elif y + obj.depth + obj.reserved_space > self.height:
+                        y = self.height - obj.depth - obj.reserved_space
+
+                    conf = np.where(resolve_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] > 1)
+                    if conf[0].size > 0:
+                        uids = np.unique(resolve_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space][conf])
+                        confs.append(np.concatenate(([uid],uids)))
+                    resolve_locations[uid] = (x, y)
+                    resolve_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] *= obj.uid
+
+                elif rotation == Rotation.RIGHT:
+                    if x < 0:
+                        x = 0
+                    elif x + obj.depth + obj.reserved_space > self.width:
+                        x = self.width - obj.depth - obj.reserved_space
+                    if y < 0:
+                        y = 0
+                    elif y + obj.width > self.height:
+                        y = self.height - obj.width
+
+                    conf = np.where(resolve_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] > 1)
+                    if conf[0].size > 0:
+                        uids = np.unique(resolve_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width][conf])
+                        confs.append(np.concatenate(([uid],uids)))
+                    resolve_locations[uid] = (x, y)
+                    resolve_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] *= obj.uid
+
+                elif rotation == Rotation.DOWN:
+                    if x < 0:
+                        x = 0
+                    elif x + obj.width > self.width:
+                        x = self.width - obj.width
+                    if y < obj.reserved_space:
+                        y = obj.reserved_space
+                    elif y + obj.depth > self.height:
+                        y = self.height - obj.depth
+
+                    conf = np.where(resolve_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] > 1)
+                    if conf[0].size > 0:
+                        uids = np.unique(resolve_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth][conf])
+                        confs.append(np.concatenate(([uid],uids)))
+                    resolve_locations[uid] = (x, y)
+                    resolve_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] *= obj.uid
+
+                elif rotation == Rotation.LEFT:
+                    if x < obj.reserved_space:
+                        x = obj.reserved_space
+                    elif x + obj.depth > self.width:
+                        x = self.width - obj.depth
+                    if y < 0:
+                        y = 0
+                    elif y + obj.width > self.height:
+                        y = self.height - obj.width
+
+                    conf = np.where(resolve_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] > 1)
+                    if conf[0].size > 0:
+                        uids = np.unique(resolve_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width][conf])
+                        confs.append(np.concatenate(([uid],uids)))
+                    resolve_locations[uid] = (x, y)
+                    resolve_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] *= obj.uid
+
+                else:
+                    raise AttributeError("UNKNOWN")
+            
+            # Get new conflict list
+            new_conflicts = list(np.unique([u for conflict in confs for u in conflict]))
+            new_conflicts = [uid for uid in new_conflicts if uid in uid_to_X.keys()] # Remove uids that are not in the solution space
+            # Update conflicts with intersection of old and new conflicts to get unresolved conflicts
+            new_conflicts = set(conflicts).intersection(set(new_conflicts))
+            # Add resolved locations to the space
+            resolved_conflicts = set(conflicts).difference(new_conflicts)
+            for uid in resolved_conflicts:
+                x, y = resolve_locations[uid]
+                i, j = uid_to_X[uid]
+                X[i][j][0], X[i][j][1] = x, y
+                obj = self.objects[uid]
+                rotation = X[i][j][2] if X[i][j].shape[0] == 3 else obj.rotation
+                if rotation == Rotation.UP:
+                    new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] = obj.uid
+                    new_open_space[x : x + obj.width, y : y + obj.depth] = True
+                elif rotation == Rotation.RIGHT:
+                    new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] = obj.uid
+                    new_open_space[x : x + obj.depth, y : y + obj.width] = True
+                elif rotation == Rotation.DOWN:
+                    new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] = obj.uid
+                    new_open_space[x : x + obj.width, y : y + obj.depth] = True
+                elif rotation == Rotation.LEFT:
+                    new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] = obj.uid
+                    new_open_space[x : x + obj.depth, y : y + obj.width] = True
+                else:
+                    raise AttributeError("UNKNOWN")
+
+            conflicts = list(new_conflicts)
+            sigma += 1 # Increase noise parameter
+
+
     def _factorize(self, n: int) -> list[int]:
         """
         Returns the factors of n.
@@ -609,12 +669,13 @@ class Room:
         return num == 1
 
 
-    def evaluate(self, optimize_type = "open_dist") -> float:
+    def evaluate(self, optimize_type: str = "taxi_cab_dist") -> float:
         """
         Evaluate the objective function.
+        :param optimize_type: Type of optimization. Default is "taxi_cab_dist".
+        :return: Evaluation of the objective function.
         """
-        # Get value of open space here!
-        #fobj = 0.0
+
         if optimize_type == "open_dist" or optimize_type == "open_distance":
             contour_map = np.zeros((self.width, self.height), dtype=float)
             for i in range(self.width):
@@ -638,14 +699,20 @@ class Room:
                 nodes = np.transpose(np.where(contour_map == largest))
                 largest += 1
                 
-            eval = np.sum(contour_map)/self.euc_norm
+            eval = np.sum(contour_map)/(np.prod(contour_map.shape)**2)
+
+        elif optimize_type == "euclidean_distance" or optimize_type == "euclidean_dist":
+            raise NotImplementedError("Not implemented yet.")
 
         return eval
 
 
-    def _get_open_width(self, x, y) -> int:
+    def _get_open_width(self, x: int, y: int) -> int:
         """
         Get the width of the open space at position x, y.
+        :param x: x position
+        :param y: y position
+        :return: width of open space at position x, y
         """
         width = 0
         for i in range(x, self.width):
@@ -661,9 +728,12 @@ class Room:
         return width
     
     
-    def _get_open_height(self, x, y) -> int:
+    def _get_open_height(self, x: int, y: int) -> int:
         """
         Get the height of the open space at position x, y.
+        :param x: x position
+        :param y: y position
+        :return: height of open space at position x, y
         """
         height = 0
         for j in range(y, self.height):
