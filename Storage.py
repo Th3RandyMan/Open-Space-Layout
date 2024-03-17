@@ -8,6 +8,8 @@ from functools import reduce
 from matplotlib import pyplot as plt
 from skimage.measure import label
 
+
+
 class Rotation(IntEnum):
     """
     Enum class for rotation. Objects facing up will have reserved space defined above the object.
@@ -84,6 +86,7 @@ class Room:
         self.name = name
         self.current_uid = 1 # must be prime numbers
         self.contiguous = None
+        self.n_objects = 0
 
         self.uid_space = np.ones((width, height), dtype=int)   #unique id space for moving objects around
         self.taken_space = np.zeros((width, height), dtype=bool)#space taken by objects, including reserved space
@@ -178,6 +181,7 @@ class Room:
         """
         Updates the space taken by the object in the room.
         """
+        self.n_objects += 1
         object.uid = self.next_uid()
         self.objects[object.uid] = object
         if object.moveable:
@@ -260,30 +264,34 @@ class Room:
         conflicts = []
         uid_to_X = defaultdict(tuple)
 
+        if len(np.unique(self.uid_space)) != len(self.objects) + 1: # Check for missing objects
+            raise AttributeError("MISSING OBJECTS")
+
         # Include the non-moveable objects. First objects should be moveable.
         for obj in self.objects.values():
             if obj.moveable:
-                break
+                continue
             
             uid_to_X[obj.uid] = ()  # Add uid to the dictionary with no position in solution vector
 
             if obj.rotation == Rotation.UP:
-                new_uid_space[obj.x : obj.x + obj.width, obj.y : obj.y + obj.depth + obj.reserved_space] = obj.uid
+                new_uid_space[obj.x : obj.x + obj.width, obj.y : obj.y + obj.depth + obj.reserved_space] *= obj.uid
                 new_open_space[obj.x : obj.x + obj.width, obj.y : obj.y + obj.depth] = True
             elif obj.rotation == Rotation.RIGHT:
-                new_uid_space[obj.x : obj.x + obj.depth + obj.reserved_space, obj.y : obj.y + obj.width] = obj.uid
+                new_uid_space[obj.x : obj.x + obj.depth + obj.reserved_space, obj.y : obj.y + obj.width] *= obj.uid
                 new_open_space[obj.x : obj.x + obj.depth, obj.y : obj.y + obj.width] = True
             elif obj.rotation == Rotation.DOWN:
-                new_uid_space[obj.x : obj.x + obj.width, obj.y - obj.reserved_space : obj.y + obj.depth] = obj.uid
+                new_uid_space[obj.x : obj.x + obj.width, obj.y - obj.reserved_space : obj.y + obj.depth] *= obj.uid
                 new_open_space[obj.x : obj.x + obj.width, obj.y : obj.y + obj.depth] = True
             elif obj.rotation == Rotation.LEFT:
-                new_uid_space[obj.x - obj.reserved_space : obj.x + obj.depth, obj.y : obj.y + obj.width] = obj.uid
+                new_uid_space[obj.x - obj.reserved_space : obj.x + obj.depth, obj.y : obj.y + obj.width] *= obj.uid
                 new_open_space[obj.x : obj.x + obj.depth, obj.y : obj.y + obj.width] = True
 
 
         # Add in moveable objects to the new space
         for i, key in enumerate(self.moveable_shapes.keys()):
             for j, uid in enumerate(self.moveable_shapes[key]):
+                print(uid)
                 obj = self.objects[uid]
                 uid_to_X[uid] = (i,j)
                 x, y = X[i][j][0], X[i][j][1]
@@ -314,7 +322,6 @@ class Room:
                         conflicts.append(np.concatenate(([uid],uids)))
                     new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] *= obj.uid
                     new_open_space[x : x + obj.width, y : y + obj.depth] = True
-                    #conf = np.where(new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] > obj.uid)
 
                 elif rotation == Rotation.RIGHT:
                     if x < 0:
@@ -336,7 +343,6 @@ class Room:
                         conflicts.append(np.concatenate(([uid],uids)))
                     new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] *= obj.uid
                     new_open_space[x : x + obj.depth, y : y + obj.width] = True
-                    #conf = np.where(new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] > obj.uid)                 
 
                 elif rotation == Rotation.DOWN:
                     if x < 0:
@@ -358,7 +364,6 @@ class Room:
                         conflicts.append(np.concatenate(([uid],uids)))
                     new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] *= obj.uid
                     new_open_space[x : x + obj.width, y : y + obj.depth] = True
-                    #conf = np.where(new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] > obj.uid)
 
                 elif rotation == Rotation.LEFT:
                     if x < - obj.reserved_space:
@@ -380,56 +385,77 @@ class Room:
                         conflicts.append(np.concatenate(([uid],uids)))
                     new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] *= obj.uid
                     new_open_space[x : x + obj.depth, y : y + obj.width] = True
-                    #conf = np.where(new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] > obj.uid)
 
                 else:
                     raise AttributeError("UNKNOWN")
-                
-                # if conf[0].size > 0:    # If there are conflicts, add to set
-                #     conflicts.append(np.transpose(conf))
+                        
+        confs = list(np.unique([u for conflict in conflicts for u in conflict])) # REMOVE THIS
+        present_uids = [uid for uid in np.unique(new_uid_space) if uid in self.objects.keys()]
+        missing_uids = [uid for uid in self.objects.keys() if uid not in present_uids]
+        print("On map:", np.unique(new_uid_space))
+
+        if len(missing_uids) > 0: # Check for missing objects
+            print("Present UIDs: ", present_uids)
+            print("Missing UIDs: ", missing_uids)
+            for uid in missing_uids:
+                i,j = uid_to_X[uid]
+                print(X[i][j])
+            raise AttributeError("MISSING OBJECTS")
+
+
+
+
+
 
         if len(conflicts) > 0:
             # Update conflict list
             conflicts = list(np.unique([u for conflict in conflicts for u in conflict]))
+            conflicts = [uid for uid in conflicts if uid in uid_to_X.keys()]
             unmoved = []
             # Remove conflicts from the space
             for uid in conflicts:
-                if uid not in uid_to_X.keys(): # Either this or check if not prime
-                    conflicts.remove(uid)
-                else:
-                    if uid_to_X[uid] == ():
-                        conflicts.remove(uid)
-                        unmoved.append(uid) 
-                        continue
-                    
-                    i,j = uid_to_X[uid]
-                    if(X[i][j] == self.X[i][j]).all():  # If the object hasn't moved, give it the position
-                        conflicts.remove(uid)
-                        unmoved.append(uid) 
-                    else: # If the object has moved, remove from space
-                        i, j = uid_to_X[uid]
-                        x, y = X[i][j][0], X[i][j][1]
-                        obj = self.objects[uid]
-                        rotation = X[i][j][2] if X[i][j].shape[0] == 3 else obj.rotation
-                        if rotation == Rotation.UP:
-                            x0 , xf, y0, yf = x, x + obj.width, y, y + obj.depth + obj.reserved_space
-                            new_open_space[x : x + obj.width, y : y + obj.depth] = False
-                        elif rotation == Rotation.RIGHT:
-                            x0 , xf, y0, yf = x, x + obj.depth + obj.reserved_space, y, y + obj.width
-                            new_open_space[x : x + obj.depth, y : y + obj.width] = False
-                        elif rotation == Rotation.DOWN:
-                            x0 , xf, y0, yf = x, x + obj.width, y - obj.reserved_space, y + obj.depth
-                            new_open_space[x : x + obj.width, y : y + obj.depth] = False
-                        elif rotation == Rotation.LEFT:
-                            x0 , xf, y0, yf = x - obj.reserved_space, x + obj.depth, y, y + obj.width
-                            new_open_space[x : x + obj.depth, y : y + obj.width] = False
-                        else:
-                            raise AttributeError("UNKNOWN")
-                        # Remove the object from the space
-                        new_uid_space[x0 : xf, y0 : yf] = (new_uid_space[x0 : xf, y0 : yf]/uid).astype(int)
+                print("\tUID: ", uid)
+                if uid_to_X[uid] == (): # Filter out objects that cannot move
+                    #conflicts.remove(uid)
+                    unmoved.append(uid) 
+                    print("\t\tRemoved since not moveable")
+                    continue
+                
+                i,j = uid_to_X[uid]
+                if(X[i][j] == self.X[i][j]).all():  # If the object hasn't moved, give it the position
+                    #conflicts.remove(uid)
+                    unmoved.append(uid) 
+                    print("\t\tRemoved since not moved, but can move.")
+                else: # If the object has moved, remove from space
+                    print("\t\tAdjusted position.")
+                    i, j = uid_to_X[uid]
+                    x, y = X[i][j][0], X[i][j][1]
+                    obj = self.objects[uid]
+                    rotation = X[i][j][2] if X[i][j].shape[0] == 3 else obj.rotation
+                    if rotation == Rotation.UP:
+                        x0 , xf, y0, yf = x, x + obj.width, y, y + obj.depth + obj.reserved_space
+                        new_open_space[x : x + obj.width, y : y + obj.depth] = False
+                    elif rotation == Rotation.RIGHT:
+                        x0 , xf, y0, yf = x, x + obj.depth + obj.reserved_space, y, y + obj.width
+                        new_open_space[x : x + obj.depth, y : y + obj.width] = False
+                    elif rotation == Rotation.DOWN:
+                        x0 , xf, y0, yf = x, x + obj.width, y - obj.reserved_space, y + obj.depth
+                        new_open_space[x : x + obj.width, y : y + obj.depth] = False
+                    elif rotation == Rotation.LEFT:
+                        x0 , xf, y0, yf = x - obj.reserved_space, x + obj.depth, y, y + obj.width
+                        new_open_space[x : x + obj.depth, y : y + obj.width] = False
+                    else:
+                        raise AttributeError("UNKNOWN")
+                    # Remove the object from the space
+                    new_uid_space[x0 : xf, y0 : yf] = (new_uid_space[x0 : xf, y0 : yf]/uid).astype(int)
+
+
+
+
 
             # Add objects that haven't moved back into the open space
             for uid in unmoved:
+                conflicts.remove(uid)
                 obj = self.objects[uid]
                 if obj.rotation == Rotation.UP:
                     new_open_space[obj.x : obj.x + obj.width, obj.y : obj.y + obj.depth] = True
@@ -441,13 +467,19 @@ class Room:
                     new_open_space[obj.x : obj.x + obj.depth, obj.y : obj.y + obj.width] = True
                 else:
                     raise AttributeError("UNKNOWN")
+                
+            if len(np.unique(new_uid_space)) != len(self.objects) + 1 - len(conflicts): # Check for missing objects
+                raise AttributeError("MISSING OBJECTS")
+
 
             # Resolve conflicts with noise separation
             sigma = 1 # Noise parameter that will grow with iterations
             while len(conflicts) > 0:
+                if len(np.unique(new_uid_space)) != len(self.objects) + 1 - len(conflicts):
+                    raise AttributeError("MISSING OBJECTS")
+
                 resolve_space = np.copy(new_uid_space)
-                resolve_open_space = np.copy(new_open_space)
-                resolve_locations = []
+                resolve_locations = defaultdict(tuple)
                 confs = []
                 for uid in conflicts:
                     if uid_to_X[uid] == (): # If object cannot move, skip
@@ -464,7 +496,7 @@ class Room:
                         y = 0
                     elif y + obj.depth + obj.reserved_space > self.height:
                         y = self.height - obj.depth - obj.reserved_space
-                    resolve_locations.append((x, y))
+                    resolve_locations[uid] = (x, y)
 
                     obj = self.objects[uid]
                     rotation = X[i][j][2] if X[i][j].shape[0] == 3 else obj.rotation
@@ -474,53 +506,58 @@ class Room:
                         if conf[0].size > 0:
                             uids = np.unique(resolve_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space][conf])
                             confs.append(np.concatenate(([uid],uids)))
-
                         resolve_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] *= obj.uid
-                        resolve_open_space[x : x + obj.width, y : y + obj.depth] = True
                     elif rotation == Rotation.RIGHT:
                         conf = np.where(resolve_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] > 1)
                         if conf[0].size > 0:
                             uids = np.unique(resolve_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width][conf])
                             confs.append(np.concatenate(([uid],uids)))
-
                         resolve_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] *= obj.uid
-                        x0 , xf, y0, yf = x, x + obj.depth + obj.reserved_space, y, y + obj.width
-                        resolve_open_space[x : x + obj.depth, y : y + obj.width] = True
                     elif rotation == Rotation.DOWN:
                         conf = np.where(resolve_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] > 1)
                         if conf[0].size > 0:
                             uids = np.unique(resolve_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth][conf])
                             confs.append(np.concatenate(([uid],uids)))
-
                         resolve_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] *= obj.uid
-                        resolve_open_space[x : x + obj.width, y : y + obj.depth] = True
                     elif rotation == Rotation.LEFT:
                         conf = np.where(resolve_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] > 1)
                         if conf[0].size > 0:
                             uids = np.unique(resolve_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width][conf])
                             confs.append(np.concatenate(([uid],uids)))
-
                         resolve_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] *= obj.uid
-                        resolve_open_space[x : x + obj.depth, y : y + obj.width] = True
                     else:
                         raise AttributeError("UNKNOWN")
                 
                 # Get new conflict list
-                confs = list(np.unique([u for conflict in confs for u in conflict]))
-                confs = [uid for uid in confs if uid in uid_to_X.keys()] # Remove uids that are not in the solution space
-                # Update conflicts with intersection of old and new conflicts
-                conflicts = list(set(conflicts).intersection(set(confs)))
+                new_conflicts = list(np.unique([u for conflict in confs for u in conflict]))
+                new_conflicts = [uid for uid in new_conflicts if uid in uid_to_X.keys()] # Remove uids that are not in the solution space
+                # Update conflicts with intersection of old and new conflicts to get unresolved conflicts
+                new_conflicts = set(conflicts).intersection(set(new_conflicts))
+                # Add resolved locations to the space
+                resolved_conflicts = set(conflicts).difference(new_conflicts)
+                for uid in resolved_conflicts:
+                    x, y = resolve_locations[uid]
+                    i, j = uid_to_X[uid]
+                    X[i][j][0], X[i][j][1] = x, y
+                    obj = self.objects[uid]
+                    rotation = X[i][j][2] if X[i][j].shape[0] == 3 else obj.rotation
+                    if rotation == Rotation.UP:
+                        new_uid_space[x : x + obj.width, y : y + obj.depth + obj.reserved_space] = obj.uid
+                        new_open_space[x : x + obj.width, y : y + obj.depth] = True
+                    elif rotation == Rotation.RIGHT:
+                        new_uid_space[x : x + obj.depth + obj.reserved_space, y : y + obj.width] = obj.uid
+                        new_open_space[x : x + obj.depth, y : y + obj.width] = True
+                    elif rotation == Rotation.DOWN:
+                        new_uid_space[x : x + obj.width, y - obj.reserved_space : y + obj.depth] = obj.uid
+                        new_open_space[x : x + obj.width, y : y + obj.depth] = True
+                    elif rotation == Rotation.LEFT:
+                        new_uid_space[x - obj.reserved_space : x + obj.depth, y : y + obj.width] = obj.uid
+                        new_open_space[x : x + obj.depth, y : y + obj.width] = True
+                    else:
+                        raise AttributeError("UNKNOWN")
+
+                conflicts = list(new_conflicts)
                 sigma += 1 # Increase noise parameter
-
-
-            # Add resolved locations to the space
-            new_uid_space = resolve_space
-            new_open_space = resolve_open_space
-            # Add resolved locations to solution vector
-            for k, uid in enumerate(conflicts):
-                i, j = uid_to_X[uid]
-                X[i][j][0], X[i][j][1] = resolve_locations[k]
-
 
         if False: # Ignore this for now
             # Check if the new space is contiguous
@@ -531,6 +568,9 @@ class Room:
         else:   
             self.contiguous = self._is_contiguous(new_open_space)    # Check if the space is contiguous
     
+
+        if len(np.unique(new_uid_space)) != len(self.objects) + 1: # Check for missing objects
+            raise AttributeError("MISSING OBJECTS")
 
         # Update to the new space
         self.uid_space = new_uid_space
