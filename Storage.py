@@ -704,6 +704,7 @@ class Room:
         elif optimize_type == "euclidean_distance" or optimize_type == "euclidean_dist":
             raise NotImplementedError("Not implemented yet.")
 
+        self.fobj = eval
         return eval
 
 
@@ -765,10 +766,8 @@ if __name__ == "__main__":
     room.add_object(couch1, 40, 40, Rotation.LEFT)
     room.add_object(door1, 80, 0, Rotation.UP)
 
-    # print(table1)
-    # print(couch1)
-    # print(door1)
     print(room)
+    print("Objective function value: ",room.evaluate("taxi_cab_dist"))
     print(f"Solution: {room.get_X()}")
 
     plt.subplot(1, 2, 1)

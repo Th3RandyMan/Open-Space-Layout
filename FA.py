@@ -136,6 +136,7 @@ class FA:
         self.beta0 = beta0
         self.gamma = gamma
         self.fireflies = [Firefly(objects, width, height, name + str(i), i) for i in range(self.N)]
+        self.best = None
     
     def move_firefly(self, firefly1:Firefly, firefly2:Firefly) -> None:
         """
@@ -190,6 +191,7 @@ class FA:
         self.fireflies.sort(key=lambda x: x.fobj, reverse=True)
         # Initialize the best solution
         best = self.fireflies[0]
+        updates = [(0, best.fobj)]
         # Main loop
         with tqdm(total=self.T*self.N) as pbar:
             for t in range(self.T):
@@ -207,12 +209,17 @@ class FA:
                 # Sort fireflies by objective function value
                 self.fireflies.sort(key=lambda x: x.fobj, reverse=True)
                 # Update the best solution
-                if self.fireflies[0].fobj < best.fobj:
+                if self.fireflies[0].fobj > best.fobj:
+                    updates.append((t+1, best.fobj))
                     best = self.fireflies[0]
                 if moved.count(True) == 0:
                     print(f"Converged at iteration {t}")
                     break
+        
+        for t, fobj in updates:
+            print(f"{t}/{self.T} | {fobj}")
 
+        self.best = best
         return best.room
 
 
@@ -341,7 +348,7 @@ class DbFA:
             # Sort fireflies by objective function value
             self.fireflies.sort(key=lambda x: x.fobj, reverse=True)
             # Update the best solution
-            if self.fireflies[0].fobj < best.fobj:
+            if self.fireflies[0].fobj > best.fobj:
                 best = self.fireflies[0]
         return best.room
 
@@ -353,8 +360,6 @@ if __name__ == "__main__":
     couch1 = Object(30, 10, 8, "Couch")
     desks = [Object(20, 10, 5, "Desk") for i in range(5)]
     door1 = Object(10, 0, 8, "Door", x=20, y=0, rotation=Rotation.UP, rotatable=False, moveable=False)
-    temp1 = Object(40, 10, 0, "Temp", x=0, y=80, rotation=Rotation.UP, rotatable=False, moveable=False)
-    temp2 = Object(40, 10, 0, "Temp", x=40, y=60, rotation=Rotation.LEFT, rotatable=False, moveable=False)
 
     width = 100
     height = 100
@@ -366,6 +371,7 @@ if __name__ == "__main__":
     room = FA.optimize("taxi_cab_dist") 
 
     print(room)
+    print(f"Objective function value: {room.fobj}")
     print(f"Solution: {room.get_X()}")
 
     plt.subplot(1, 2, 1)

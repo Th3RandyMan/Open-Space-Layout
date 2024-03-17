@@ -35,3 +35,41 @@ Not all items on the to-do list will be addressed, but more objects need to be a
 * Room size: 40ft by 19.2ft
 * Desk 1 size: 58in by 23in
 * NEED TO ADD MORE ITEMS
+
+## Results on test example:
+Default hyperparameters are alpha = (2,0.2), bet0 = (5,0.5), and gamma = 0.01.
+* For N = 10 and T = 10 on test example:
+``` Room | Width: 100, Height: 100, Number of Objects: 8 Contiguous: True
+Objects: ['Door: 1', 'Table: 1', 'Couch: 1', 'Desk: 5']
+Objective function value: 0.00104568
+Solution: [array([[5., 7., 3.]]), array([[ 0., 26.,  1.]]), array([[ 0., 57.,  1.],
+       [66.,  2.,  1.],
+       [ 2., 85.,  0.],
+       [85., 35.,  1.],
+       [80., 64.,  0.]])] 
+```
+
+* For N = 10 and T = 20 on test example:
+```
+
+```
+
+* For N = 10 and T = 40 on test example:
+```
+
+```
+
+* For N = 100 and T = 10 on test example:
+```
+
+```
+
+* For N = 100 and T = 20 on test example:
+```
+
+```
+
+* For N = 100 and T = 40 on test example:
+```
+
+```
