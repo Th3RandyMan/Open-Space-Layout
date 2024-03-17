@@ -359,11 +359,11 @@ if __name__ == "__main__":
     width = 100
     height = 100
     objects = [table1, couch1, door1] + desks#, temp1, temp2]
-    N = 100  # Number of fireflies
-    T = 40  # Number of iterations
+    N = 10  # Number of fireflies
+    T = 10  # Number of iterations
 
     FA = FA(objects, width, height, N, T)
-    room = FA.optimize("taxi_cab_dist")
+    room = FA.optimize("taxi_cab_dist") 
 
     print(room)
     print(f"Solution: {room.get_X()}")
