@@ -27,6 +27,8 @@ class Firefly:
         self.id = id
         self.room = Room(width, height, name)
         self.generate_random_solution(objects, timeout)
+        self.fobj = None  # Objective function value
+        self.moved = False  # Flag to check if the firefly moved
 
     def generate_random_solution(self, objects:list[Object], timeout: int=10) -> None:
         """
@@ -173,7 +175,7 @@ class FA:
             moved = []
             for xi1, xi in zip(X1, X):
                 moved.append(np.array_equal(xi1, xi.astype(int)))
-            self.moved = moved.count(True) != len(moved)    # Check if the firefly moved
+            firefly1.moved = moved.count(True) != len(moved)    # Check if the firefly moved
 
     def optimize(self, optimize_type = "taxi_cab_dist") -> Room:
         """
@@ -210,7 +212,7 @@ class FA:
                 if moved.count(True) == 0:
                     print(f"Converged at iteration {t}")
                     break
-                
+
         return best.room
 
 
