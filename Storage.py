@@ -412,7 +412,7 @@ class Room:
                     # Check for out of bounds
                     if x < obj.reserved_space:
                         x = obj.reserved_space
-                        X[i][j][0] = -obj.reserved_space
+                        X[i][j][0] = obj.reserved_space
                     elif x + obj.depth > self.width:
                         x = self.width - obj.depth
                         X[i][j][0] = self.width - obj.depth
