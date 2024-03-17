@@ -126,9 +126,9 @@ class FA:
         :param height: Height of the room
         :param N: Number of fireflies
         :param T: Number of iterations
-        :param alpha: Randomness parameter
-        :param beta0: Attraction coefficient
-        :param gamma: Light absorption coefficient
+        :param alpha: Randomness parameter. The first value is for position and the second value is for rotation
+        :param beta0: Attraction coefficient. The first value is for position and the second value is for rotation
+        :param gamma: Light absorption coefficient.
         """
         self.N = N
         self.T = T
