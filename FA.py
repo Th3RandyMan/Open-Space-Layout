@@ -2,6 +2,7 @@ import numpy as np
 from Storage import Object, Room, Rotation
 from random import randint, random
 from matplotlib import pyplot as plt
+from tqdm import tqdm
 #import signal
 
 
@@ -168,6 +169,11 @@ class FA:
         valid = firefly1.set_X(X)
         if not valid:
             raise ValueError("Invalid position") # Should avoid this case
+        else:
+            moved = []
+            for xi1, xi in zip(X1, X):
+                moved.append(np.array_equal(xi1, xi.astype(int)))
+            self.moved = moved.count(True) != len(moved)    # Check if the firefly moved
 
     def optimize(self, optimize_type = "taxi_cab_dist") -> Room:
         """
@@ -183,20 +189,28 @@ class FA:
         # Initialize the best solution
         best = self.fireflies[0]
         # Main loop
-        for t in range(self.T):
-            # Update fireflies
-            for i in range(self.N):
-                for j in range(self.N):
-                    if self.fireflies[i].fobj < self.fireflies[j].fobj:
-                        # Move firefly1 towards firefly2
-                        self.move_firefly(self.fireflies[i], self.fireflies[j])     
-                        # Evaluate the objective function
-                        self.fireflies[i].evaluate(optimize_type)
-            # Sort fireflies by objective function value
-            self.fireflies.sort(key=lambda x: x.fobj, reverse=True)
-            # Update the best solution
-            if self.fireflies[0].fobj < best.fobj:
-                best = self.fireflies[0]
+        with tqdm(total=self.T*self.N) as pbar:
+            for t in range(self.T):
+                moved = []
+                # Update fireflies
+                for i in range(self.N):
+                    for j in range(self.N):
+                        if self.fireflies[i].fobj < self.fireflies[j].fobj:
+                            # Move firefly1 towards firefly2
+                            self.move_firefly(self.fireflies[i], self.fireflies[j])  
+                            moved.append(self.fireflies[i].moved)
+                            # Evaluate the objective function
+                            self.fireflies[i].evaluate(optimize_type)
+                    pbar.update(1)
+                # Sort fireflies by objective function value
+                self.fireflies.sort(key=lambda x: x.fobj, reverse=True)
+                # Update the best solution
+                if self.fireflies[0].fobj < best.fobj:
+                    best = self.fireflies[0]
+                if moved.count(True) == 0:
+                    print(f"Converged at iteration {t}")
+                    break
+                
         return best.room
 
 
@@ -343,8 +357,8 @@ if __name__ == "__main__":
     width = 100
     height = 100
     objects = [table1, couch1, door1] + desks#, temp1, temp2]
-    N = 10  # Number of fireflies
-    T = 10  # Number of iterations
+    N = 100  # Number of fireflies
+    T = 40  # Number of iterations
 
     FA = FA(objects, width, height, N, T)
     room = FA.optimize("taxi_cab_dist")
