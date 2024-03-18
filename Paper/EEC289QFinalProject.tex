@@ -17,7 +17,7 @@
 
 \graphicspath{{figures/}} %set folder for figures
 
-\title{Optimizing Open Space for Furniture Layout using Firefly Algorithm and Genetic Algorithm}
+\title{Optimizing Open Space for Furniture Layout using Quantized Firefly Algorithm}
 
 \author{
     Randall Fowler and Conor King
@@ -67,22 +67,26 @@ The introduction goes here...
     \caption{Firefly Algorithm}
     \label{FireflyAlgorithm}
     \begin{algorithmic}
-    \STATE Initialize fireflies $x_i, i = 1, 2, ..., N$.
-    \STATE Evaluate the objective function $f(x_i)$ for each firefly.
-    \STATE Set time $t = 0$.
-    \WHILE{$t < T$}
-        \FOR{$i = 1$ to $N$}
-            \FOR{$j = 1$ to $N$}
-                \IF{$f(x_j) > f(x_i)$}
-                    \STATE Move firefly $i$ toward $j$ using equation \ref{FireflyMovement}.
-                    \STATE Evaluate the objective function $f(x_i)$.
-                \ENDIF
+        \renewcommand{\algorithmicrequire}{\textbf{Input:}}
+        \renewcommand{\algorithmicensure}{\textbf{Output:}}
+        \REQUIRE Number of fireflies $N$, number of iterations $T$
+        \ENSURE Best solution found
+        \STATE Initialize fireflies $x_i, i = 1, 2, ..., N$.
+        \STATE Evaluate the objective function $f(x_i)$ for each firefly.
+        \STATE Set time $t = 0$.
+        \WHILE{$t < T$}
+            \FOR{$i = 1$ to $N$}
+                \FOR{$j = 1$ to $N$}
+                    \IF{$f(x_j) > f(x_i)$}
+                        \STATE Move firefly $i$ toward $j$ using equation \ref{FireflyMovement}.
+                        \STATE Evaluate the objective function $f(x_i)$.
+                    \ENDIF
+                \ENDFOR
             \ENDFOR
-        \ENDFOR
-        \STATE Sort fireflies by objective function and update the best solution.
-        \STATE $t = t + 1$.
-    \ENDWHILE
-    \end{algorithmic}
+            \STATE Sort fireflies by objective function and update the best solution.
+            \STATE $t = t + 1$.
+        \ENDWHILE
+        \end{algorithmic}
     \end{algorithm}
 
     \subsection{Defining Objects in the Room}
@@ -130,19 +134,23 @@ The introduction goes here...
         \caption{Taxicab Distance Contour Map}
         \label{taxicab_eval}
         \begin{algorithmic}
-        \STATE Initialize map to height or width of room.
-        \STATE Add all objects as 0 values.
-        \STATE Add all 0 value nodes to a list of nodes.
-        \WHILE{There are nodes in the list}
-            \FOR{Each node in the list}
-                \FOR{Each neighbor of the node}
-                    \IF{Neighbor has a larger value than the current node}
-                        \STATE Neighbor is given a value of one larger than the current node.
-                    \ENDIF
+            \renewcommand{\algorithmicrequire}{\textbf{Input:}}
+            \renewcommand{\algorithmicensure}{\textbf{Output:}}
+            \REQUIRE Room with objects
+            \ENSURE Contour map of room
+            \STATE Initialize map to height or width of room.
+            \STATE Add all objects as 0 values.
+            \STATE Add all 0 value nodes to a list of nodes.
+            \WHILE{There are nodes in the list}
+                \FOR{Each node in the list}
+                    \FOR{Each neighbor of the node}
+                        \IF{Neighbor has a larger value than the current node}
+                            \STATE Neighbor is given a value of one larger than the current node.
+                        \ENDIF
+                    \ENDFOR
                 \ENDFOR
-            \ENDFOR
-            \STATE Add all nodes with a value of one larger than the nodes it just visited to the list.
-        \ENDWHILE
+                \STATE Add all nodes with a value of one larger than the nodes it just visited to the list.
+            \ENDWHILE
         \end{algorithmic}
     \end{algorithm}
 
@@ -157,13 +165,79 @@ The introduction goes here...
     
 
     \subsection{Types of Conflicts}
-    Hello, types of conflicts go here...
+    As objects begin to move in the room, there will be conflicts emerging from objects trying to move past the boundaries of the room and overlapping objects. For locations that conflict with the boundaries of the room, the object coordinates will be truncated and set to the position closest to the wall. However, overlapping object is a larger consider with a need for resolve to have a valid solution. Figure \ref{move_fig} displays an example of the algorithm starting with one room in \ref{move_fig_a}, moving towards another room in \ref{move_fig_d}, conflicting with overlapping objects in \ref{move_fig_b}, and ending in a new position \ref{move_fig_c}.
+        \begin{figure}[!h]
+        \centering
+        \subfloat[Initial Room]{\includegraphics[width=0.22\textwidth]{ConflictExample_Start.png}\label{move_fig_a}}
+        %\hfill
+        \subfloat[Conflict in the Room]{\includegraphics[width=0.22\textwidth]{ConflictExample_Moved.png}\label{move_fig_b}}
+        \hfill
+        \subfloat[Final Room]{\includegraphics[width=0.22\textwidth]{ConflictExample_End.png}\label{move_fig_c}}
+        %\hfill
+        \subfloat[Reference Room]{\includegraphics[width=0.22\textwidth]{ConflictExample_MovingToward.png}\label{move_fig_d}}
+        \caption{Moving Objects in a Room}
+        \label{move_fig}
+    \end{figure}
+    
+    There are 3 known types of conflicts that relate to overlapping objects:
+    \begin{enumerate}
+        \item One object didn't move or rotate.
+        \item One object didn't move but rotated.
+        \item All objects moved.
+    \end{enumerate}
+    The first type of conflict is the easiest to resolve as the object that didn’t move will be left in its original position. However, it’s debatable how to handle the other two conflicts. Some ideas would relate to filling the overlapped position using a random distribution with more weighting given to the objects that didn’t move as far. This would require a bit more computation and could provide new conflicts with other objects along the movement path. Another idea would be to apply noise to the objects that have conflicts. The next section discusses this idea where noise is applied to all objects simultaneously.
+        
+    \subsection{Noise Separation}
+    To resolve conflicts, one technique would be to iteratively increase noise applied to an object’s location till there is no longer a conflict. Algorithm \ref{noise_sep} demonstrates the proposed noise separation algorithm to follow this procedure. Figure \ref{resolving_conflicts} contains the results of each iteration for the same example shown in figure \ref{move_fig}. The algorithm begins by creating a list of conflicts and removing all of them as shown in \ref{rc_fig_a}. Objects that didn’t move are not considered as conflicting objects and remain in the plot. All conflicts in the list will be added back to the plot with noisy new positions. If the new positions fail, the amount of noise will increase and try again, and this can be seen through three iterations between figures \ref{rc_fig_b} to \ref{rc_fig_d}. 
 
-    \subsection{Noise Seperation}
+    Once an object resolves its position, it will be given that position and the algorithm with check for remaining conflicts for other objects. It will no longer be receiving noise for a new position once a conflict has been resolved. Figure \ref{rc_fig_d} shows the result of the noise separation with no overlapping objects.
 
+
+    \begin{algorithm}
+        \caption{Noise Separation}
+        \label{noise_sep}
+        \begin{algorithmic}
+            \renewcommand{\algorithmicrequire}{\textbf{Input:}}
+            \renewcommand{\algorithmicensure}{\textbf{Output:}}
+            \REQUIRE New uid space with conflicts
+            \ENSURE New uid space without conflicts
+
+            \STATE Initialize list of conflicts
+            \STATE Remove conflicts from new uid space.
+            \STATE Initialize noise parameter $\sigma$
+            \WHILE{There are conflicts}
+                \STATE Initialize resolve space as the new uid space..
+                \FOR {Each object with a conflict}
+                    \STATE Scale noise using $\sigma$.
+                    \STATE Apply noise to the objects position.
+                    \STATE Add object to the resolve space.
+                    \IF {There is a conflict}
+                        \STATE Add conflict to new list of conflicts.
+                    \ENDIF
+                \ENDFOR
+                \STATE Get resolved conflicts from difference between new conflicts and old conflicts.
+                \STATE Add resolved conflicts to new uid space.
+                \STATE Set new conflicts as the conflicts.
+                \STATE Increment $\sigma$.
+            \ENDWHILE
+        \end{algorithmic}
+    \end{algorithm}
+
+    \begin{figure}[!h]
+        \centering
+        \subfloat[Removed Conflicts]{\includegraphics[width=0.22\textwidth]{ConflictExample_RemovedConflicts.png}\label{rc_fig_a}}
+        %\hfill
+        \subfloat[Noise Separation 1]{\includegraphics[width=0.22\textwidth]{ConflictExample_NoiseSep1.png}\label{rc_fig_b}}
+        \hfill
+        \subfloat[Noise Separation 2]{\includegraphics[width=0.22\textwidth]{ConflictExample_NoiseSep2.png}\label{rc_fig_c}}
+        %\hfill
+        \subfloat[Noise Separation 3]{\includegraphics[width=0.22\textwidth]{ConflictExample_NoiseSep3.png}\label{rc_fig_d}}
+        \caption{Moving Objects in a Room}
+        \label{resolving_conflicts}
+    \end{figure}
 
     \subsection{Hyperparameters}
-    
+    The new solution vector, calculated from fireflies moving toward each other, will contain the locations for objects to move to and updated rotations. Since the rotation has a much smaller set of possible numbers than the coordinates, the hyperparameters $\alpha$ and $\beta_0$ may need to be defined differently. These parameters can be treated as a vector with a value relating to position and a value relating to rotation. To get started with testing, $\alpha$ and $\beta_0$ were defined as 0.2 and 0.5 for rotation respectively, and these parameters for coordinates were 2 and 5 respectively. Ideally, the movement equation should be adjusted for rotation as it may be preferable for the object to rotate more as it gets closer to the other fireflies but rotate less the further away. For now, the firefly movement remains unchanged for rotation, but there is a large exploration that can be done on the hyperparameter space.
 
 \section{Experimental Tests}
 Experimental tests go here...

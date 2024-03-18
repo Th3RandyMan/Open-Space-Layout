@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 23.10.12) (preloaded format=pdflatex 2023.12.5)  17 MAR 2024 19:01
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 23.10.12) (preloaded format=pdflatex 2023.12.5)  18 MAR 2024 11:44
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -330,15 +330,68 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 <figures/contour_map_opendist.png, id=19, 206.7725pt x 209.78375pt>
 File: figures/contour_map_opendist.png Graphic file (type png)
 <use figures/contour_map_opendist.png>
-Package pdftex.def Info: figures/contour_map_opendist.png  used on input line 120.
+Package pdftex.def Info: figures/contour_map_opendist.png  used on input line 124.
 (pdftex.def)             Requested size: 154.80157pt x 157.05891pt.
  [2]
 <figures/contour_map_taxicab.png, id=24, 710.655pt x 722.7pt>
 File: figures/contour_map_taxicab.png Graphic file (type png)
 <use figures/contour_map_taxicab.png>
-Package pdftex.def Info: figures/contour_map_taxicab.png  used on input line 151.
+Package pdftex.def Info: figures/contour_map_taxicab.png  used on input line 159.
 (pdftex.def)             Requested size: 154.80157pt x 157.41756pt.
+<figures/ConflictExample_Start.png, id=25, 419.5675pt x 425.59pt>
+File: figures/ConflictExample_Start.png Graphic file (type png)
+<use figures/ConflictExample_Start.png>
+Package pdftex.def Info: figures/ConflictExample_Start.png  used on input line 171.
+(pdftex.def)             Requested size: 113.52063pt x 115.15111pt.
+LaTeX Font Info:    Trying to load font information for OT1+phv on input line 171.
+ (C:\Users\randa\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\ot1phv.fd
+File: ot1phv.fd 2020/03/25 scalable font definitions for OT1/phv.
+)
+<figures/ConflictExample_Moved.png, id=26, 420.57124pt x 432.61626pt>
+File: figures/ConflictExample_Moved.png Graphic file (type png)
+<use figures/ConflictExample_Moved.png>
+Package pdftex.def Info: figures/ConflictExample_Moved.png  used on input line 173.
+(pdftex.def)             Requested size: 113.52063pt x 116.76834pt.
+<figures/ConflictExample_End.png, id=27, 422.57875pt x 430.60875pt>
+File: figures/ConflictExample_End.png Graphic file (type png)
+<use figures/ConflictExample_End.png>
+Package pdftex.def Info: figures/ConflictExample_End.png  used on input line 175.
+(pdftex.def)             Requested size: 113.52063pt x 115.67456pt.
+<figures/ConflictExample_MovingToward.png, id=28, 420.57124pt x 434.62375pt>
+File: figures/ConflictExample_MovingToward.png Graphic file (type png)
+<use figures/ConflictExample_MovingToward.png>
+Package pdftex.def Info: figures/ConflictExample_MovingToward.png  used on input line 177.
+(pdftex.def)             Requested size: 113.52063pt x 117.31018pt.
 
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+[3 <./figures/contour_map_opendist.png> <./figures/contour_map_taxicab.png (PNG copy)>]
+<figures/ConflictExample_RemovedConflicts.png, id=33, 412.54124pt x 425.59pt>
+File: figures/ConflictExample_RemovedConflicts.png Graphic file (type png)
+<use figures/ConflictExample_RemovedConflicts.png>
+Package pdftex.def Info: figures/ConflictExample_RemovedConflicts.png  used on input line 228.
+(pdftex.def)             Requested size: 113.52063pt x 117.10579pt.
+<figures/ConflictExample_NoiseSep1.png, id=34, 411.5375pt x 425.59pt>
+File: figures/ConflictExample_NoiseSep1.png Graphic file (type png)
+<use figures/ConflictExample_NoiseSep1.png>
+Package pdftex.def Info: figures/ConflictExample_NoiseSep1.png  used on input line 230.
+(pdftex.def)             Requested size: 113.52063pt x 117.39801pt.
+<figures/ConflictExample_NoiseSep2.png, id=35, 416.55624pt x 427.5975pt>
+File: figures/ConflictExample_NoiseSep2.png Graphic file (type png)
+<use figures/ConflictExample_NoiseSep2.png>
+Package pdftex.def Info: figures/ConflictExample_NoiseSep2.png  used on input line 232.
+(pdftex.def)             Requested size: 113.52063pt x 116.52942pt.
+<figures/ConflictExample_NoiseSep3.png, id=36, 417.56pt x 426.59375pt>
+File: figures/ConflictExample_NoiseSep3.png Graphic file (type png)
+<use figures/ConflictExample_NoiseSep3.png>
+Package pdftex.def Info: figures/ConflictExample_NoiseSep3.png  used on input line 234.
+(pdftex.def)             Requested size: 113.52063pt x 115.97598pt.
+
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+[4 <./figures/ConflictExample_Start.png> <./figures/ConflictExample_Moved.png> <./figures/ConflictExample_End.png> <./figures/ConflictExample_MovingToward.png> <./figures/ConflictExample_RemovedConflicts.png> <./figures/ConflictExample_NoiseSep1.png> <./figures/ConflictExample_NoiseSep2.png> <./figures/ConflictExample_NoiseSep3.png>]
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -350,24 +403,26 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the appropriate paper size.
 
-[3 <./figures/contour_map_opendist.png> <./figures/contour_map_taxicab.png (PNG copy)>] (EEC289QFinalProject.aux)
+[5
+
+] (EEC289QFinalProject.aux)
  ***********
 LaTeX2e <2023-11-01>
 L3 programming layer <2023-11-09>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 4654 strings out of 474587
- 82486 string characters out of 5745702
- 1942558 words of memory out of 5000000
- 26792 multiletter control sequences out of 15000+600000
- 590242 words of font info for 93 fonts, out of 8000000 for 9000
+ 4806 strings out of 474587
+ 86640 string characters out of 5745702
+ 1943558 words of memory out of 5000000
+ 26939 multiletter control sequences out of 15000+600000
+ 592002 words of font info for 95 fonts, out of 8000000 for 9000
  1145 hyphenation exceptions out of 8191
- 57i,8n,65p,1004b,647s stack positions out of 10000i,1000n,20000p,200000b,200000s
-<C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi5.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi7.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr5.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr7.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy7.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm10.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmb8a.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmr8a.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmri8a.pfb>
-Output written on EEC289QFinalProject.pdf (3 pages, 233278 bytes).
+ 57i,11n,65p,1097b,655s stack positions out of 10000i,1000n,20000p,200000b,200000s
+<C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmex10.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi5.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmmi7.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr5.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr7.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy7.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm10.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/urw/helvetic/uhvr8a.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmb8a.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmr8a.pfb><C:/Users/randa/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmri8a.pfb>
+Output written on EEC289QFinalProject.pdf (5 pages, 302761 bytes).
 PDF statistics:
- 87 PDF objects out of 1000 (max. 8388607)
+ 114 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
- 11 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 51 words of extra memory for PDF output out of 10000 (max. 10000000)
 
