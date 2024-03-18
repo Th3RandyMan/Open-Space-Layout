@@ -108,13 +108,59 @@ The introduction goes here...
 
 \section{Design Decisions}
     \subsection{Objective Function}
+    The purpose of this project is to design an optimal layout for a room with known objects. However, this is a challenging problem to address as optimizing the layout of a room is biased toward the opinion of the user. A common preference for individuals when designing their room is to have the largest amount of open space possible. With a set number of objects, the amount of open space would be the same for every possible room arrangement, but maximizing open space for this project holds a different definition. The objective of maximizing open space consists of maximizing the roundness of open areas. This means that larger open spaces would be preferred, but stretched open space would be less preferable than more circular open spaces; A large rectangular open space would be preferred over a long rectangle with the same area.
+    
+    At first, this objective function was thought to be its own optimization problem where largest ratio of area to perimeter would be useful for estimating value of the room. However, another method emerged to try and satisfy the objective function. A pseudo contour map of the room could be created to find the distance between objects and maximize on spreading objects around the room. For less objects, the optimal solution could be to push everything against the walls, but for a larger number of objects, the layout would need to be creative about placement.
+    
+    A contour map for the room would be an estimate of distance between objects at every point in the room. Objects themselves would have a value of 0 since that is the location of an object, and the walls could be either seen as an object or not. For this project, it was decided to treat the walls as an object, but exploring the other option could be insightful.
+    
+    The first idea of a contour map thought of would be known as open distance, and this represents the product of width and height of the open space at a given position of the graph. This algorithm is simply created by iterating over all positions of the graph and getting the width by moving up and down till hitting a wall or object, and the height similarly with left and right. Results for this method are shown in figure \ref{open_dist_fig}, and it is difficult to spot where the objects actually are. 
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.3\textwidth]{contour_map_opendist.png}
+        \caption{Open Distance Contour Map}
+        \label{open_dist_fig}
+    \end{figure}
 
+    The second idea of a contour map was to use Euclidean distance to the nearest object or wall. This algorithm would require a good search method that could keep its searching distance to under the distance to the nearest wall. However, Taxicab geometric distance would provide a similar contour map, but the algorithm could be greatly improved. 
+
+    Algorithm \ref{taxicab_eval} shows the method for calculating distances. All points would be initialized as a number larger than possible, objects would be added as 0 values, and the search would begin by adding all nodes with 0 value to a list of nodes. While there are nodes in the list, each node will be iterated through, and if a neighbor has a larger value than the current node, the neighbor will be given a value of one larger than its own. After iterating through all nodes, it will then add all nodes with a value of one larger than the nodes it just visited. Eventually, all points in the map will have a distance. Results of this algorithm can be seen in figure \ref{taxicab_dist_fig}.
+
+    \begin{algorithm}
+        \caption{Taxicab Distance Contour Map}
+        \label{taxicab_eval}
+        \begin{algorithmic}
+        \STATE Initialize map to height or width of room.
+        \STATE Add all objects as 0 values.
+        \STATE Add all 0 value nodes to a list of nodes.
+        \WHILE{There are nodes in the list}
+            \FOR{Each node in the list}
+                \FOR{Each neighbor of the node}
+                    \IF{Neighbor has a larger value than the current node}
+                        \STATE Neighbor is given a value of one larger than the current node.
+                    \ENDIF
+                \ENDFOR
+            \ENDFOR
+            \STATE Add all nodes with a value of one larger than the nodes it just visited to the list.
+        \ENDWHILE
+        \end{algorithmic}
+    \end{algorithm}
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.3\textwidth]{contour_map_taxicab.png}
+        \caption{Taxicab Distance Contour Map}
+        \label{taxicab_dist_fig}
+    \end{figure}
+
+    Once the contour map has been found, evaluation of the map will provide the objective function. This value can be found by summing the entire contour map. Larger values will be calculated if there is more space between objects, and the calculated values could be normalized using the size of the room.
+    
 
     \subsection{Types of Conflicts}
-
+    Hello, types of conflicts go here...
 
     \subsection{Noise Seperation}
-    
+
 
 \section{Experimental Tests}
 Experimental tests go here...
