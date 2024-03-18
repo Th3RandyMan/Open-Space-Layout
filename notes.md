@@ -37,39 +37,75 @@ Not all items on the to-do list will be addressed, but more objects need to be a
 * NEED TO ADD MORE ITEMS
 
 ## Results on test example:
-Default hyperparameters are alpha = (2,0.2), bet0 = (5,0.5), and gamma = 0.01.
-* For N = 10 and T = 10 on test example:
-``` Room | Width: 100, Height: 100, Number of Objects: 8 Contiguous: True
+Default hyperparameters are alpha = (2,0.2), bet0 = (5,0.5), and gamma = 0.01. Runtime follow format of hours:minutes:seconds
+* For N = 10 and T = 10, 00:10 runtime:
+``` 
+Room | Width: 100, Height: 100, Number of Objects: 8 Contiguous: True
 Objects: ['Door: 1', 'Table: 1', 'Couch: 1', 'Desk: 5']
-Objective function value: 0.00104568
-Solution: [array([[5., 7., 3.]]), array([[ 0., 26.,  1.]]), array([[ 0., 57.,  1.],
-       [66.,  2.,  1.],
-       [ 2., 85.,  0.],
-       [85., 35.,  1.],
-       [80., 64.,  0.]])] 
+Objective function value: 0.00102703
+Solution: [array([[36.,  0.,  1.]]), array([[ 0., 64.,  1.]]), array([[ 5.,  0.,  3.],
+       [85.,  0.,  1.],
+       [47., 74.,  2.],
+       [67., 68.,  1.],
+       [85., 61.,  1.]])]
 ```
 
-* For N = 10 and T = 20 on test example:
+* For N = 10 and T = 20, 00:20 runtime:
+```
+Room | Width: 100, Height: 100, Number of Objects: 8 Contiguous: True
+Objects: ['Door: 1', 'Table: 1', 'Couch: 1', 'Desk: 5']
+Objective function value: 0.00104827
+Solution: [array([[33.,  1.,  0.]]), array([[69., 82.,  0.]]), array([[ 2.,  0.,  1.],
+       [49.,  6.,  0.],
+       [80., 40.,  2.],
+       [81., 56.,  1.],
+       [45., 90.,  2.]])]
 ```
 
+* For N = 10 and T = 40, 00:42 runtime:
+```
+Room | Width: 100, Height: 100, Number of Objects: 8 Contiguous: True
+Objects: ['Door: 1', 'Table: 1', 'Couch: 1', 'Desk: 5']
+Objective function value: 0.00113211
+Solution: [array([[17., 90.,  2.]]), array([[82., 70.,  1.]]), array([[ 0.,  1.,  1.],
+       [70.,  0.,  1.],
+       [ 2., 73.,  1.],
+       [78., 34.,  1.],
+       [85., 13.,  1.]])]
 ```
 
-* For N = 10 and T = 40 on test example:
+* For N = 100 and T = 10, 21:09 runtime:
+```
+Room | Width: 100, Height: 100, Number of Objects: 8 Contiguous: True
+Objects: ['Door: 1', 'Table: 1', 'Couch: 1', 'Desk: 5']
+Objective function value: 0.00120348
+Solution: [array([[ 8., 90.,  1.]]), array([[ 3., 52.,  1.]]), array([[ 0.,  0.,  1.],
+       [29., 79.,  1.],
+       [85.,  3.,  1.],
+       [54., 90.,  2.],
+       [82., 80.,  1.]])]
 ```
 
+* For N = 100 and T = 20, 45:02 runtime:
+```
+Room | Width: 100, Height: 100, Number of Objects: 8 Contiguous: True
+Objects: ['Door: 1', 'Table: 1', 'Couch: 1', 'Desk: 5']
+Objective function value: 0.00119344
+Solution: [array([[ 3., 89.,  1.]]), array([[70., 16.,  2.]]), array([[ 2.,  1.,  1.],
+       [50.,  5.,  2.],
+       [ 0., 78.,  2.],
+       [23., 80.,  1.],
+       [80., 90.,  2.]])]
 ```
 
-* For N = 100 and T = 10 on test example:
+* For N = 100 and T = 40, 1:29:11 runtime:
 ```
-
-```
-
-* For N = 100 and T = 20 on test example:
-```
-
-```
-
-* For N = 100 and T = 40 on test example:
-```
-
+Room | Width: 100, Height: 100, Number of Objects: 8 Contiguous: True
+Objects: ['Door: 1', 'Table: 1', 'Couch: 1', 'Desk: 5']
+Objective function value: 0.00123605
+Solution: [array([[90., 48.,  2.]]), array([[ 3., 16.,  1.]]), array([[ 0.,  5.,  2.],
+       [ 0., 72.,  2.],
+       [85.,  0.,  1.],
+       [ 0., 90.,  2.],
+       [90., 74.,  3.]])]
 ```
