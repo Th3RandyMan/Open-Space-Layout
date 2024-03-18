@@ -110,7 +110,14 @@ Solution: [array([[90., 48.,  2.]]), array([[ 3., 16.,  1.]]), array([[ 0.,  5.,
        [90., 74.,  3.]])]
 ```
 
-* For N = 300 and T = 20, runtime:
+* For N = 300 and T = 20, 20:27:41 runtime:
 ```
-
+Room | Width: 100, Height: 100, Number of Objects: 8 Contiguous: True
+Objects: ['Door: 1', 'Table: 1', 'Couch: 1', 'Desk: 5']
+Objective function value: 0.00133779
+Solution: [array([[61., 90.,  1.]]), array([[70.,  0.,  0.]]), array([[ 1.,  0.,  1.],
+       [ 0., 21.,  1.],
+       [ 2., 90.,  2.],
+       [26., 90.,  2.],
+       [79., 90.,  2.]])]
 ```
