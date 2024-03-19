@@ -38,3 +38,4 @@ if __name__ == "__main__":
     plt.title("Open Space")
 
     plt.show()
+    a = 5
