@@ -21,9 +21,9 @@ if __name__ == "__main__":
     width = 40     # Width of the room
     height = 20    # Height of the room
     objects = [door1, door2, Couch] + desks
-    #objects = desks
-    N = 30  # Number of fireflies
-    T = 100  # Number of iterations
+    objects = desks
+    N = 50  # Number of fireflies
+    T = 200  # Number of iterations
 
     FireflyAlgorithm = FA(objects, width, height, N, T, name="LEPS Room")
     room = FireflyAlgorithm.optimize("taxi_cab_dist") 
