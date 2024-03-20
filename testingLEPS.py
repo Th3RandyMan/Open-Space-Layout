@@ -21,7 +21,7 @@ if __name__ == "__main__":
     width = 40     # Width of the room
     height = 20    # Height of the room
     objects = [door1, door2, Couch] + desks
-    objects = desks
+    #objects = desks
     N = 50  # Number of fireflies
     T = 200  # Number of iterations
 
