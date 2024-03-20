@@ -1,4 +1,5 @@
-\documentclass[conference]{IEEEtran}
+% \documentclass[conference]{IEEEtran}
+\documentclass[sigconf,authordraft]{acmart}
 \usepackage{amsmath,amsfonts}
 \usepackage{algorithmic}
 \usepackage{algorithm}
@@ -10,8 +11,6 @@
 \usepackage{verbatim}
 \usepackage{graphicx}
 \usepackage{cite}
-\hyphenation{op-tical net-works semi-conduc-tor IEEE-Xplore}
-% updated with editorial comments 8/9/2021
 
 \begin{document}
 
@@ -23,22 +22,28 @@
     Randall Fowler and Conor King
 }
 
-\maketitle
 
 \begin{abstract}
-Abstract goes here...
+    This project explores the application of the Firefly Algorithm (FA), a meta-heuristic inspired by the behavior of tropical fireflies, to optimize the layout of a room. The problem is defined discretely using rectangular objects within a grid. Each object will have a width, depth, rotation, reserved space, and a unique identifier. While optimizing a room may be subjective, the objective function will be defined to promote roundness in open areas. Overlapping objects will be resolved iteratively using a noise separation technique. Results provided demonstrate the proof of concept for small cases with availability for improvements.
 \end{abstract}
 
-\begin{IEEEkeywords}
-Firefly Algorithm, Discrete Optimization, Contour Mapping
-\end{IEEEkeywords}
+\keywords{Firefly Algorithm, Discrete Optimization, Contour Mapping}
+
+\maketitle
 
 \section{Introduction}
-The introduction goes here...
+Designing a room layout typically consists of optimizing configuration of a room with the bias of the designer. A desirable space should be efficient and aesthetically pleasing for the users. Traditional methods of designing a room could be considered time-consuming and may not yield the best results. This paper delves into the complexity of optimizing a room layout by arranging objects to maximize the amount of open space. 
+
+To reduce the complexity of the optimization problem, the space is discretized into a grid with rectangular. This reduces the amount of search space and relates to the shaping of common furniture. Similar problems would relate to the knapsack problem or optimally designing integrated chips.
+
+Defining the problem as discrete does not reduce the complexity enough to exhaustively search for the best solution. The employed heuristic for this project is the Firefly Algorithm (FA), inspired by the natural behavior of fireflies. Fireflies will represent potential solutions in the solution space. Similar to a normal firefly, these bugs will be attracted to one another and drift toward the brightest firefly. This brightest firefly will be the current approximated best solution that all fireflies will attempt to get close to. If the brightest firefly is far away, the lesser flies will consider local bright flies more than the global brightest.
+
+Firefly movements assist in searching the complex solution space by distributing the flies and allow time for finding better solutions. The novel approach proposed in this paper is to use the FA for spatially reassigning object location and rotations in a room. Due to quantizing the locations of objects, the algorithm will propose challenges relating to the conflicts between objects. New methods were developed for considering the desired location of objects and how to resolve any overlap between objects that fight over the same space.
+
 
 \section{Methodology}
     \subsection{Firefly Algorithm}
-    The original FA mimics the behavior of tropical fireflies. Each firefly will represent a solution, and a uniform distribution will be used to initialize the location of each firefly throughout the solution space. This follows a similar method to the particle swarm optimization (PSO) algorithm, but there is a major difference between FA and PSO \cite{swarmIntAlg}. While particles in PSO will move in the direction of a local better solution, fireflies expand upon this by moving toward the current global best solution. Movement toward the global best solution is handled by shifting fireflies toward the brightest firefly with respect to distance.
+    The original FA mimics the behavior of tropical fireflies. Each firefly will represent a solution, and a uniform distribution will be used to initialize the location of each firefly throughout the solution space. This follows a similar method to the particle swarm optimization (PSO) algorithm, but there is a major difference between FA and PSO [1]. While particles in PSO will move in the direction of a local better solution, fireflies expand upon this by moving toward the current global best solution. Movement toward the global best solution is handled by shifting fireflies toward the brightest firefly with respect to distance.
 
     The FA is designed for continuous optimization with a maximization objective defined as 
     \begin{equation}
@@ -237,16 +242,180 @@ The introduction goes here...
     \end{figure}
 
     \subsection{Hyperparameters}
+    \label{hyperparameters_section}
     The new solution vector, calculated from fireflies moving toward each other, will contain the locations for objects to move to and updated rotations. Since the rotation has a much smaller set of possible numbers than the coordinates, the hyperparameters $\alpha$ and $\beta_0$ may need to be defined differently. These parameters can be treated as a vector with a value relating to position and a value relating to rotation. To get started with testing, $\alpha$ and $\beta_0$ were defined as 0.2 and 0.5 for rotation respectively, and these parameters for coordinates were 2 and 5 respectively. Ideally, the movement equation should be adjusted for rotation as it may be preferable for the object to rotate more as it gets closer to the other fireflies but rotate less the further away. For now, the firefly movement remains unchanged for rotation, but there is a large exploration that can be done on the hyperparameter space.
 
 \section{Experimental Tests}
-Experimental tests go here...
+A shared laboratory space was chosen to optimize for a standard desk configuration. Table \ref{object_table} represents the inventory of the defined space, including the information pertaining to the sizing of the room and objects. For objects listed, only the doors are considered as unmovable due to the nature of this object. For future consideration, white boards mounted in the room could also be listed as unmovable objects that require reserved space to access.
+
+\begin{table}[!h]
+    \centering
+    \caption{Object Inventory}
+    \label{object_table}
+    \begin{tabular}{|c|c|c|c|c|}
+        \hline
+        \textbf{Object} & \textbf{Width} & \textbf{Depth} & \textbf{Reserved Space} & \textbf{Quantity} \\
+        \hline
+        Room & 40 & 20 & - & - \\
+        Desk & 5 & 2 & 3 & 16 \\
+        Shelf & 3 & 1 & 4 & 2 \\
+        Cabinet & 3 & 2 & 2 & 3 \\
+        Couch & 6 & 2 & 3 & 1 \\
+        Table & 4 & 2 & 3 & 3 \\
+        Door & 4 & 0 & 4 & 2 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+When evaluating the room for the objective function, an empty room with the taxicab distance metric would have a value of 0.02155625. This establishes an upper bound on the estimated value of any solution the algorithm might find. For this reason, all evaluations will be normalized with respect to an empty room.
+
+The algorithm's operation hinges on two key hyperparameters: the initial number of fireflies and the number of iterations. In a basic setup, featuring 10 desks and devoid of additional furniture or doors, both these parameters were systematically altered while keeping the other constant at 10. Both $\alpha$ and $\beta_0$ were defined the same as what was specified in section \ref{hyperparameters_section} and $\gamma = 0.1$. Each test involved recording the final room layout, the corresponding objective function value, and the runtime. Detailed numerical results can be found in tables \ref{eval_table1} and \ref{eval_table2}, with figures \ref{final_setup1} and \ref{final_setup2} showcasing the optimal room configurations for the best-performing setups from the initial setup shown in figure \ref{initial_setup}.
+
+\begin{table}
+    \centering
+    \caption{Evaluation of Firefly Algorithm with 10 Desks and 10 Iterations}
+    \label{eval_table1}
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \textbf{Fireflies} & \textbf{Runtime (s)} & \textbf{Objective Function} \\
+        \hline
+        10 & 2 & 0.180052189 \\
+        20 & 10 & 0.187663091 \\
+        40 & 64 & 0.193461873 \\
+        80 & 315 & 0.19614381 \\
+        160 & 2915 & 0.20585677 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{table}
+    \centering
+    \caption{Evaluation of Firefly Algorithm with 10 Desks and 10 Fireflies}
+    \label{eval_table2}
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \textbf{Iterations} & \textbf{Runtime (s)} & \textbf{Objective Function}\\
+        \hline
+        10 & 2 & 0.180052189 \\
+        20 & 9 & 0.184908669 \\
+        40 & 17 & 0.195636416 \\
+        80 & 35 & 0.199115686 \\
+        320 & 77 & 0.203247318 \\
+        640 & 157 & 0.204117135 \\
+        3000 & 1627 & 0.201870107 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{conor_init_room.png}
+    \caption{Initial Room Configuration}
+    \label{initial_setup}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{conor_final_room.png}
+    \caption{Optimal Room Configuration for 10 Desks and 10 Iterations}
+    \label{final_setup1}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{conor_final_room1.png}
+    \caption{Optimal Room Configuration for 10 Desks and 10 Fireflies}
+    \label{final_setup2}
+\end{figure}
+
+In tables \ref{eval_table1} and \ref{eval_table2}, it's evident that for 10 desks and 10 iterations, the algorithm's runtime escalates exponentially as the number of fireflies increases. Doubling the fireflies augments runtime by a factor ranging between 5 and 10, while concurrently enhancing the final solution by approximately 3\%. This trend persists until practical testing becomes unfeasible due to excessively long runtimes. Increasing fireflies corresponds to augmenting the algorithm's exploration capability. 
+
+Alternatively, for 10 desks and 10 fireflies, the algorithm's runtime demonstrates a linear growth concerning the number of iterations. Initially, there's a substantial improvement compared to doubling the number of fireflies, approximately 6\% versus 3\%. However, increasing iterations enhance the exploitative aspect of the algorithm, with improvements tapering off as iterations increase and local minima are encountered. Notably, the performance of the last row in the tables is worse than the preceding row. This indicates that increasing the number of iterations to a larger number than 640 may not be beneficial to the performance.
+
+Although the difference in objective function between the first and last rows in table \ref{eval_table1} and \ref{eval_table2} may seem negligible, a visual inspection of figures \ref{initial_setup} through \ref{final_setup2} reveals a significant variance in the optimality of room layouts. There is a 67\% increase in the value of the room between these figures with figure \ref{initial_setup} having a score of 0.122934184. The algorithm tends to prioritize moving objects towards the walls, albeit with notable spatial issues evident in the final solutions depicted in the figures.
+
+The next phase involves assessing the algorithm's performance as the room's complexity or "busyness" escalates. This proves more challenging to objectively test compared to simply increasing parameters. Table \ref{room_complexity_table} outlines the strategy employed for this evaluation, where each entry denotes the presence of furnishings from its column in the respective complexity test's row. For each test, 20 fireflies were initialized, and the algorithm ran for 30 iterations. Figures \ref{complex1} to \ref{complex3} depict the final room configurations for each complexity test. For Complexity 3, the number of furnishings was substantial enough to prompt the algorithm to deviate from the strategy of solely aligning objects against walls. The absence of cabinets and shelves across all rows in table \ref{room_complexity_table}, with the number of desks never exceeding 16, indicates that the algorithm tends to stall out during initialization as the complexity increases. This is due to the escalating challenges of finding conflict-free random configurations, and the objective function over iterations can be seen in figure \ref{complex_plot}.
+
+\begin{table}
+    \centering
+    \caption{Room Complexity Tests}
+    \label{room_complexity_table}
+    \begin{tabular}{|c|c|c|c|c|}
+        \hline
+        \textbf{Complexity} & \textbf{Doors} & \textbf{Desks} & \textbf{Couches} & \textbf{Tables} \\
+        \hline
+        1 & 1 & 5 & 0 & 0 \\
+        2 & 1 & 5 & 1 & 3 \\
+        3 & 2 & 10 & 1 & 3 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{conor1.png}
+    \caption{Optimal Room Configuration for Complexity 1}
+    \label{complex1}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{conor2.png}
+    \caption{Optimal Room Configuration for Complexity 2}
+    \label{complex2}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{conor3.png}
+    \caption{Optimal Room Configuration for Complexity 3}
+    \label{complex3}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{conor_complex_plot.png}
+    \caption{Objective Function Over Iterations for Complexity Tests with 20 Fireflies}
+    \label{complex_plot}
+\end{figure}
+
+For a final test of 10 desks, a couch, and two doors, the performance over various fireflies and iterations are provided in table \ref{final_table}. The table is sorted by the normalized score to visualize the required number of fireflies and iterations to improve the room’s value. This may vary greatly from other tables due to the number of objects in the room. 
+
+\begin{table}
+    \centering
+    \caption{Evaluation of Firefly Algorithm with 10 Desks, a Couch, and Two Doors}
+    \label{final_table}
+    \begin{tabular}{|c|c|c|c|}
+        \hline
+        \textbf{Fireflies} & \textbf{Iterations} & \textbf{Runtime (s)} & \textbf{Objective Function} \\
+        \hline
+        10 & 10 & 3 & 0.168382140 \\
+        40 & 10 & 64 & 0.179689765 \\
+        10 & 100 & 69 & 0.183603943 \\
+        40 & 50 & 594 & 0.186213395 \\
+        30 & 100 & 793 & 0.186720789 \\
+        50 & 200 & 3064 & 0.192012177 \\
+        \hline
+    \end{tabular}
+\end{table}
 
 \section{Conclusions}
-Conclusions go here...
+The problems of optimally designing furniture layout were explored through an algorithmic approach. With the firefly algorithm (FA), the search space was significantly reduced to a manageable runtime. Results proved to be promising as the estimated optimal solutions were reasonably close to what would be expected. With less objects in a room, objects were moved to the walls to provide large amounts of open space. Challenges arouse when object could no longer be placed along the wall.
+
+When objects were placed into the room, they were randomly placed one at a time. This approach did work for this project, but the runtime would greatly increase when the room was densely populated with objects. An alternative approach to attempt in the future would be to place all the objects at once or distribute positions uniformly rather than in random locations.
+
+The evaluation strategy of using contour maps was satisfactory as it did provide information for maximizing on the open space. One issue that wasn’t resolved was contiguous open space. When objects cut off areas of space from one another, the layout would no longer be valid. Ideas to resolve this would relate to finding the shortest distance between the divided open spaced. However, the connection between open spaces would need to be redefined to allow someone to walk from one space to the next.
+
+Noise separation did resolve conflicts rather well, but there may be plenty of edge cases that it would not work well for. If objects are getting close, they may not be able to resolve by wiggling the objects around with noise. Further testing on this method could provide more clarity into the usefulness of it.
+
+In conclusion, the method of designing the room proved to be adequate by getting close to solutions that would be expected. There are plenty of improvements that could be made to this project, but the proof of concept appears to be valid.
+
 
 \section*{Acknowledgment}
-Thankful for...
+The authors would like to thank Dr. Soheil Ghiasi for his lectures relating to the optimization aspects of this project.
+
+\section*{Contributions}
+Randall Fowler: Algorithm development, algorithm implementation, and experimental testing. Conor King: Algorithm development and experimental testing.
 
 \begin{thebibliography}{1}
     \bibliographystyle{IEEEtran}
@@ -254,8 +423,6 @@ Thankful for...
     \bibitem{swarmIntAlg}
     Slowik, A. (Ed.). (2020). Swarm Intelligence Algorithms: A Tutorial (1st ed.). CRC Press. https://doi.org/10.1201/9780429422614
     
-    \bibitem{ref2}
-    Reference 2 goes here...
     
 \end{thebibliography}
 
