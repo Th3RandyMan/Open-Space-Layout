@@ -644,6 +644,8 @@ class Room:
 
             conflicts = list(new_conflicts)
             sigma += 1 # Increase noise parameter
+            if sigma > max(self.width, self.height):
+                sigma = 1
 
 
     def _factorize(self, n: int) -> list[int]:

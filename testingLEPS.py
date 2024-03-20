@@ -9,10 +9,9 @@ def plot(room: Room):
     plt.show()
 
 if __name__ == "__main__":
-    desks = [Object(5, 2, 3, "Desk") for i in range(16)]   # Create a list of desks
+    desks = [Object(5, 2, 3, "Desk") for i in range(10)]   # Create a list of desks
     shelves = [Object(3, 1, 4, "Shelf") for i in range(2)]
-    LCabinet = Object(3, 2, 4, "Large Cabinet")
-    MCabinets = [Object(3, 2, 4, "Medium Cabinet") for i in range(3)]
+    Cabinets = [Object(3, 2, 2, "Cabinets") for i in range(3)]
     Couch = Object(6, 2, 3, "Couch")
     Tables = [Object(4, 2, 3, "Table") for i in range(3)]
 
@@ -21,9 +20,10 @@ if __name__ == "__main__":
 
     width = 40     # Width of the room
     height = 20    # Height of the room
-    objects = [LCabinet, Couch, door1, door2] + desks + shelves + MCabinets + Tables
-    N = 1  # Number of fireflies
-    T = 1  # Number of iterations
+    objects = [door1, door2, Couch] + desks + Tables
+    #objects = desks
+    N = 20  # Number of fireflies
+    T = 30  # Number of iterations
 
     FireflyAlgorithm = FA(objects, width, height, N, T, name="LEPS Room")
     room = FireflyAlgorithm.optimize("taxi_cab_dist") 
